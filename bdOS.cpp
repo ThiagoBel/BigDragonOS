@@ -12,6 +12,7 @@
 using namespace std;
 
 string notificationsfile = "notifications.txt";
+string historico_apps_vc = "historico_apps_vc.txt";
 string loadertemp = "loader_info_temp.txt";
 string versionweb = "https://raw.githubusercontent.com/ThiagoBel/versions_apps/refs/heads/main/bdos/bdos_version.txt";
 string updatesnweb = "https://raw.githubusercontent.com/ThiagoBel/versions_apps/refs/heads/main/bdos/bdos_updates.txt";
@@ -35,6 +36,30 @@ void asciicall()
     cout << "| __ -| | . |  |  |  |  _| .'| . | . |   |  |  |  |__   |\n";
     cout << "|_____|_|_  |  |____/|_| |__,|_  |___|_|_|  |_____|_____|\n";
     cout << "        |___|                |___|                       \n";
+}
+
+void read_files(const string &filename)
+{
+    ifstream aart(filename);
+    string linha;
+    if (aart.is_open())
+    {
+        while (getline(aart, linha))
+        {
+            cout << linha << endl;
+        }
+        aart.close();
+    }
+    else
+    {
+        cout << "Erro\n";
+    }
+}
+
+void clear_files(const string &filename)
+{
+    ofstream aarf(filename, ios::trunc);
+    aarf.close();
 }
 
 void check_updates()
@@ -64,6 +89,35 @@ void check_notifications()
     {
         cout << "Erro\n";
     }
+}
+
+void install_obj_curl(const string &link, const string &file)
+{
+    system(("curl -s --ssl-no-revoke " + link + " > " + file).c_str());
+}
+
+void send_historico_apps(const string &obj)
+{
+    ofstream aaa(historico_apps_vc);
+    if (aaa.is_open())
+    {
+        aaa << obj << "\n";
+        aaa.close();
+    }
+    else
+    {
+        cout << "Erro\n";
+    }
+}
+
+void check_historico_apps()
+{
+    read_files(historico_apps_vc);
+}
+
+void clear_historico_apps()
+{
+    clear_files(historico_apps_vc);
 }
 
 void clear_notifications()
@@ -694,6 +748,7 @@ int main()
                     cout << "config_perm_2: " << config_perm_2 << endl;
                     cout << "config_perm_3: " << config_perm_3 << endl;
                     cout << "notificationsfile: " << notificationsfile << endl;
+                    cout << "historico_apps_vc: " << historico_apps_vc << endl;
                     cout << "loadertemp: " << loadertemp << endl;
                     cout << "versionweb: " << versionweb << endl;
                     cout << "updatesnweb: " << updatesnweb << endl;
@@ -705,6 +760,34 @@ int main()
                     cout << "os: " << os << endl;
                     cout << "canstart: " << canstart << endl;
                     cout << "profiled: " << profiled << endl;
+                }
+                else if (comando.rfind("down_app", 0) == 0)
+                {
+                    string link = comando.substr(9);
+
+                    link.erase(0, link.find_first_not_of(" "));
+
+                    size_t pos = link.find_last_of('/');
+                    if (pos == string::npos)
+                    {
+                        cout << "Link invalido\n";
+                        continue;
+                    }
+
+                    string filename = link.substr(pos + 1);
+                    string path = "apps/" + filename;
+
+                    install_obj_curl(link, path);
+                    send_historico_apps(filename + " -> " + link);
+                    cout << filename << " abaixado com sucesso" << endl;
+                }
+                else if (comando == "check_history" || comando == "check_historico")
+                {
+                    check_historico_apps();
+                }
+                else if (comando == "clear_history" || comando == "clear_historico" || comando == "cls_historico" || comando == "cls_history")
+                {
+                    clear_historico_apps();
                 }
                 else
                 {
