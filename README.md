@@ -1,2 +1,6 @@
 # BigDragonOS
-simulação de um sistema operacional que eu fiz
+
+tá em teste ainda
+
+QUER VER O DOCUMENTO??
+DIGITE NO TERMINAL: "check_docs"
