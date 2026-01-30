@@ -9,15 +9,27 @@
 #include <sys/stat.h>
 #include <algorithm>
 #include <cwctype>
+#include <functional>
+#pragma comment(lib, "winmm.lib")
+#include <mmsystem.h>
+
+#include "storage/configs/_libs/icolor.hpp"
+#include "storage/configs/_libs/MOPTS.h"
 using namespace std;
 
-string notificationsfile = "notifications.txt";
-string historico_apps_vc = "historico_apps_vc.txt";
-string loadertemp = "loader_info_temp.txt";
+string notificationsfile = "storage/configs/notifications.txt";
+string historico_apps_vc = "storage/configs/historico_apps_vc.txt";
+string loadertemp = "storage/configs/loader_info_temp.txt";
+string senhakey = "storage/configs/key.txt";
 string versionweb = "https://raw.githubusercontent.com/ThiagoBel/versions_apps/refs/heads/main/bdos/bdos_version.txt";
 string updatesnweb = "https://raw.githubusercontent.com/ThiagoBel/versions_apps/refs/heads/main/bdos/bdos_updates.txt";
 string docweb = "https://raw.githubusercontent.com/ThiagoBel/versions_apps/refs/heads/main/bdos/bdos_doc.txt";
 string usernameprofile = "";
+string genderuser = "";
+string SENHAFINAL = "";
+bool entrada_pela_senha = false;
+unsigned long long armazenamento_total_aplicativos_num = 0;
+string armazenamento_total_aplicativos_str = "0 bytes";
 string thisvers = "1.0";
 string actualvers = "nl";
 string theme = "0c";
@@ -29,13 +41,39 @@ bool config_perm_2 = false;
 bool config_perm_3 = false;
 bool profiled = false;
 
+string getExeDir()
+{
+    char buffer[MAX_PATH];
+    GetModuleFileNameA(NULL, buffer, MAX_PATH);
+    string path(buffer);
+    return path.substr(0, path.find_last_of("\\/"));
+}
+
+void tocarSom(const char *relativo)
+{
+    string caminho = getExeDir() + "\\" + relativo;
+    PlaySoundA(caminho.c_str(), NULL, SND_FILENAME | SND_ASYNC);
+}
+
 void asciicall()
 {
     cout << " _____ _        ____                         _____ _____ \n";
     cout << "| __  |_|___   |    \\ ___ ___ ___ ___ ___   |     |   __|\n";
     cout << "| __ -| | . |  |  |  |  _| .'| . | . |   |  |  |  |__   |\n";
-    cout << "|_____|_|_  |  |____/|_| |__,|_  |___|_|_|  |_____|_____|\n";
+    cout << "|_____|_|_  |  |____/|_| |__,|_  |___|_|_|  |_____|_____| Simulator\n";
     cout << "        |___|                |___|                       \n";
+}
+
+void gender_user(const string &classss)
+{
+    genderuser = classss;
+}
+
+string hashSenha(const string &senha)
+{
+    hash<string> hasher;
+    size_t hashValue = hasher(senha);
+    return to_string(hashValue);
 }
 
 void read_files(const string &filename)
@@ -134,6 +172,62 @@ void clear_notifications()
     }
 }
 
+unsigned long long calcularTamanhoPasta(const string &pasta)
+{
+    unsigned long long total = 0;
+
+    string busca = pasta + "\\*";
+    WIN32_FIND_DATAA dados;
+    HANDLE hFind = FindFirstFileA(busca.c_str(), &dados);
+
+    if (hFind == INVALID_HANDLE_VALUE)
+        return 0;
+
+    do
+    {
+        string nome = dados.cFileName;
+
+        if (nome == "." || nome == "..")
+            continue;
+
+        string caminhoCompleto = pasta + "\\" + nome;
+
+        if (dados.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+        {
+            total += calcularTamanhoPasta(caminhoCompleto);
+        }
+        else
+        {
+            unsigned long long tamanho =
+                (static_cast<unsigned long long>(dados.nFileSizeHigh) << 32) |
+                dados.nFileSizeLow;
+
+            total += tamanho;
+        }
+
+    } while (FindNextFileA(hFind, &dados));
+
+    FindClose(hFind);
+    return total;
+}
+void verificar_armazenamento()
+{
+    string pasta = "storage";
+    string armazenamentot = "storage/configs/armazenamento_check.txt";
+
+    unsigned long long total_bytes = calcularTamanhoPasta(pasta);
+
+    armazenamento_total_aplicativos_num = total_bytes;
+    armazenamento_total_aplicativos_str = to_string(total_bytes) + " bytes";
+
+    ofstream saida(armazenamentot);
+    if (saida.is_open())
+    {
+        saida << total_bytes;
+        saida.close();
+    }
+}
+
 void send_notification(string const &msg)
 {
     ofstream arrr(notificationsfile);
@@ -182,9 +276,10 @@ void check_version(const bool &silenttt)
 void loadinfos()
 {
     string username = "";
+    string genero = "";
 
     string linha;
-    ifstream pro("profile.txt");
+    ifstream pro("storage/configs/profile.txt");
     if (pro.is_open())
     {
         while (getline(pro, linha))
@@ -195,15 +290,55 @@ void loadinfos()
             }
         }
     }
+
+    string linha2;
+    ifstream gen("storage/configs/gender.txt");
+    if (gen.is_open())
+    {
+        while (getline(gen, linha2))
+        {
+            if (genero == "")
+            {
+                genero = linha2;
+            }
+        }
+    }
     usernameprofile = username;
+    genderuser = genero;
+}
+
+void PRINT_SYS_BLUE(const string &msgsss)
+{
+    cout << icolor::blue() << msgsss << icolor::finished() << endl;
+}
+
+void PRINT_SYS_FATAL(const string &msgsss)
+{
+    cout << icolor::fatal() << msgsss << icolor::finished() << endl;
+}
+
+void PRINT_SYS_ERR(const string &msgsss)
+{
+    cout << icolor::error() << msgsss << icolor::finished() << endl;
+}
+
+void PRINT_SYS_YELLOW(const string &msgsss)
+{
+    cout << icolor::yellow() << msgsss << icolor::finished() << endl;
+}
+
+void PRINT_SYS_SUCESS(const string &msgsss)
+{
+    cout << icolor::sucess() << msgsss << icolor::finished() << endl;
 }
 
 void userinfos()
 {
     string username = "";
+    string genero = "";
 
     string linha;
-    ifstream pro("profile.txt");
+    ifstream pro("storage/configs/profile.txt");
     if (pro.is_open())
     {
         while (getline(pro, linha))
@@ -214,7 +349,33 @@ void userinfos()
             }
         }
     }
-    cout << "Username: " + username;
+
+    string linha2;
+    ifstream gen("storage/configs/gender.txt");
+    if (gen.is_open())
+    {
+        while (getline(gen, linha2))
+        {
+            if (genero == "")
+            {
+                genero = linha2;
+            }
+        }
+    }
+    if (genero == "M")
+    {
+        genero = "Masculino";
+    }
+    else if (genero == "F")
+    {
+        genero = "Feminino";
+    }
+    else
+    {
+        genero = "Preferiu nao dizer";
+    }
+    cout << "Username: " + username << endl;
+    cout << "Genero: " + genero << endl;
 }
 
 void verification_total()
@@ -244,7 +405,7 @@ void verification_total()
 
 void carregarTema()
 {
-    ifstream file("theme.txt");
+    ifstream file("storage/configs/theme.txt");
     if (file.is_open())
     {
         getline(file, theme);
@@ -258,12 +419,13 @@ void carregamento()
     system("cls");
     system("color 05");
     cout << "Carregando...\n";
-    Sleep(1300);
+    Sleep(1000);
     system("cls");
     cout << "Ola " << usernameprofile << "!";
     Sleep(500);
     system(("color " + theme).c_str());
     system("cls");
+    tocarSom("storage\\configs\\sounds\\intro.wav");
 }
 
 void reopen(const int &ret)
@@ -276,20 +438,63 @@ void reopen(const int &ret)
     carregamento();
     asciicall();
     check_version(true);
+    system("title Big Dragon OS");
+}
+
+bool senha_loader()
+{
+    ifstream senhapraloadar(senhakey);
+    string linha;
+    string senhamesmo = "";
+    if (senhapraloadar.is_open())
+    {
+        while (getline(senhapraloadar, linha))
+        {
+            senhamesmo = linha;
+            break;
+        }
+        senhapraloadar.close();
+        if (senhamesmo == "")
+        {
+            return false;
+        }
+        else
+        {
+            SENHAFINAL = senhamesmo;
+            return true;
+        }
+    }
+    else
+    {
+        return false;
+    }
 }
 
 void profile_config()
 {
+    asciicall();
     string nameuser = "";
-    cout << "Nome: ";
+    cout << "Seja bem-vindo(a) ao BigDragonOS, um sistema operacional bem simples, antes de tudo, precisaremos de algumas informacoes." << endl;
+    cout << "Crie um nome de usuario: ";
     getline(cin, nameuser);
 
-    ofstream arrq("profile.txt");
+    MOPTS::MenuOption gender_opt[] = {
+        {"Masculino", "M", gender_user},
+        {"Feminino", "F", gender_user},
+        {"Prefiro nao dizer", "N", gender_user},
+    };
 
-    if (arrq.is_open())
+    MOPTS::ShowMenu("Qual seu genero? (Mova com W/S e selecione com enter)", gender_opt, "> ", "");
+
+    ofstream arrq("storage/configs/profile.txt");
+    ofstream arrq2("storage/configs/gender.txt");
+
+    if (arrq.is_open() && arrq2.is_open())
     {
         arrq << nameuser << "\n";
         arrq.close();
+        arrq2 << genderuser << "\n";
+        arrq2.close();
         cout << "Reabrindo...";
         reopen(0);
     }
@@ -337,7 +542,7 @@ void verification_compiler()
 
 void verification_profile()
 {
-    ifstream arq("profile.txt");
+    ifstream arq("storage/configs/profile.txt");
     string conteudo;
 
     if (arq.is_open())
@@ -380,29 +585,38 @@ void executarComCancelamento(const string &exe)
 {
     STARTUPINFOA si = {sizeof(STARTUPINFOA)};
     PROCESS_INFORMATION pi;
+    bool cancelado = false;
+
+    HANDLE hInput = GetStdHandle(STD_INPUT_HANDLE);
+    DWORD modoOriginal;
+    GetConsoleMode(hInput, &modoOriginal);
 
     if (CreateProcessA(
             NULL,
             (LPSTR)exe.c_str(),
             NULL,
             NULL,
-            FALSE,
+            TRUE,
             0,
             NULL,
             NULL,
             &si,
             &pi))
     {
-
         while (true)
         {
             DWORD status;
-            if (GetExitCodeProcess(pi.hProcess, &status) == 0 || status != STILL_ACTIVE)
+            if (!GetExitCodeProcess(pi.hProcess, &status) || status != STILL_ACTIVE)
                 break;
 
             if (GetAsyncKeyState(VK_ESCAPE) & 0x8000)
             {
                 TerminateProcess(pi.hProcess, 0);
+
+                SetConsoleMode(hInput, modoOriginal);
+                FlushConsoleInputBuffer(hInput);
+
+                cancelado = true;
                 break;
             }
 
@@ -413,28 +627,17 @@ void executarComCancelamento(const string &exe)
 
         CloseHandle(pi.hProcess);
         CloseHandle(pi.hThread);
-
-        Sleep(400);
-
-        if (remove(exe.c_str()) == 0)
-        {
-            system("cls");
-            system("title Big Dragon OS");
-            Sleep(100);
-            asciicall();
-        }
-        else
-            cout << "Falha.\n";
+        system("title Big Dragon OS");
     }
     else
     {
-        cout << "Falha ao executar " << exe << "\n";
+        cout << "Falha\n";
     }
 }
 
 void salvarTema()
 {
-    ofstream file("theme.txt");
+    ofstream file("storage/configs/theme.txt");
     if (file.is_open())
     {
         file << theme;
@@ -522,10 +725,66 @@ string toLowerCase(const string &str)
     return lower;
 }
 
+void criar_senha(const string &)
+{
+    string senha;
+    cout << "Crie uma senha: ";
+    getline(cin, senha);
+
+    string senhaHash = hashSenha(senha);
+
+    ofstream file(senhakey);
+    if (file.is_open())
+    {
+        file << senhaHash;
+        file.close();
+        PRINT_SYS_SUCESS("Senha criada com sucesso!");
+        Sleep(250);
+        system("cls");
+        asciicall();
+    }
+    else
+    {
+        PRINT_SYS_FATAL("Erro ao criar senha");
+    }
+}
+
+void del_senha(string const &senha)
+{
+    ofstream senhapracriararq(senhakey);
+    if (senhapracriararq.is_open())
+    {
+        senhapracriararq << "";
+        senhapracriararq.close();
+    }
+    else
+    {
+        PRINT_SYS_FATAL("Erro ao deletar senha");
+    }
+}
+
+void security_aba(const string &what)
+{
+    if (what == "senhas")
+    {
+        MOPTS::MenuOption senhasa[] = {
+            {"Criar senha", "criar", criar_senha},
+            {"Remover senhas", "del", del_senha},
+        };
+
+        MOPTS::ShowMenu("Escolha uma opcao:", senhasa, "> ", "");
+    }
+    else
+    {
+    }
+}
+
 int main()
 {
     HANDLE h = CreateMutexA(0, 1, "_BigDragonOS__bdOS__");
-
+    MOPTS::color = false;
+    MOPTS::all_color_line = false;
+    MOPTS::clear_opts = false;
     if (GetLastError() == ERROR_ALREADY_EXISTS)
     {
         return 0;
@@ -540,6 +799,27 @@ int main()
 
         if (canstart == true)
         {
+            while (true)
+            {
+                if (senha_loader() == true)
+                {
+                    string senhausadapraentrar = "";
+                    cout << "Senha: ";
+                    getline(cin, senhausadapraentrar);
+                    if (hashSenha(senhausadapraentrar) != SENHAFINAL)
+                    {
+                        cout << "Senha incorreta, tente de novo!" << endl;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                else
+                {
+                    break;
+                }
+            }
             carregarTema();
             system(("color " + theme).c_str());
             carregamento();
@@ -548,24 +828,30 @@ int main()
             string comandoa;
             while (true)
             {
-                cout << "\n->>";
+                verificar_armazenamento();
+                cout << "\n->> ";
                 getline(cin, comandoa);
                 string comando = toLowerCase(comandoa);
 
                 if (comando == "exit" || comando == "close")
                 {
+                    exit(0);
+                    break;
+                }
+                else if (comando == "reload")
+                {
                     break;
                 }
                 else if (comando == "show_apps")
                 {
-                    listarArquivos("apps");
+                    listarArquivos("storage/apps");
                 }
                 else if (comando.rfind("open_apps ", 0) == 0)
                 {
                     string app = comando.substr(10);
-                    string caminho = "apps/" + app + ".cpp";
+                    string caminho = "storage/apps/" + app + ".cpp";
                     string exe = app + ".exe";
-                    string cmdCompilar = "g++ " + caminho + " apps/lib/bdLIB.cpp -o " + exe;
+                    string cmdCompilar = "g++ " + caminho + " storage/apps/lib/bdLIB.cpp -o " + exe;
                     int result = system(cmdCompilar.c_str());
                     if (result == 0)
                     {
@@ -579,19 +865,25 @@ int main()
                     }
                     else
                     {
-                        cout << "Falha na compilação\n";
+                        cout << "Falha na compilacao\n";
                     }
+                }
+                else if (comando.rfind("exec_apps ", 0) == 0)
+                {
+                    string app = comando.substr(10);
+                    string caminho = "storage/apps/EXECUTER/" + app + ".exe";
+                    executarComCancelamento(caminho);
                 }
 
                 else if (comando.rfind("open_apps_lib ", 0) == 0)
                 {
                     string app = comando.substr(14);
-                    string caminho = "apps/" + app + ".cpp";
+                    string caminho = "storage/apps/" + app + ".cpp";
                     string exe = app + ".exe";
                     string lib;
                     cout << "Caminho da biblioteca: ";
                     getline(cin, lib);
-                    string cmdCompilar = "g++ " + caminho + " apps/" + lib + " -o " + exe;
+                    string cmdCompilar = "g++ " + caminho + " storage/apps/" + lib + " -o " + exe;
                     int result = system(cmdCompilar.c_str());
 
                     if (result == 0)
@@ -603,7 +895,7 @@ int main()
                     }
                     else
                     {
-                        cout << "Falha na compilação\n";
+                        cout << "Falha na compilacao\n";
                     }
                 }
                 else if (comando == "reopen")
@@ -617,7 +909,7 @@ int main()
                 else if (comando.rfind("del_app ", 0) == 0)
                 {
                     string appp = comando.substr(8);
-                    string caminho = "apps/" + appp + ".cpp";
+                    string caminho = "storage/apps/" + appp + ".cpp";
                     if (remove(caminho.c_str()) == 0)
                         cout << "Deletado\n";
                     else
@@ -675,7 +967,7 @@ int main()
                 else if (comando.rfind("test_apps", 0) == 0)
                 {
                     string ap = comando.substr(10);
-                    string caminho = "apps/" + ap + ".cpp";
+                    string caminho = "storage/apps/" + ap + ".cpp";
 
                     struct stat info;
                     if (stat(caminho.c_str(), &info) != 0)
@@ -707,12 +999,43 @@ int main()
 
                     if (vv == "Y" || vv == "y")
                     {
-                        theme = "01";
-                        carregarTema();
+                        PRINT_SYS_BLUE("Formatando...");
+                        Sleep(100);
+                        theme = "0c";
+                        PRINT_SYS_BLUE("Definindo temas...");
+                        Sleep(100);
+                        salvarTema();
+                        PRINT_SYS_BLUE("Salvando temas definidos...");
+                        Sleep(100);
                         clear_notifications();
-                        if (remove("profile.txt"))
+                        PRINT_SYS_BLUE("Limpando notificacoes...");
+                        Sleep(100);
+                        clear_historico_apps();
+                        PRINT_SYS_BLUE("Limpando historicos...");
+                        Sleep(100);
+                        if (remove("storage/configs/profile.txt"))
                         {
+                            PRINT_SYS_BLUE("Limpando perfil...");
+                            Sleep(100);
                         }
+                        if (remove("storage/configs/gender.txt"))
+                        {
+                            PRINT_SYS_BLUE("Limpando genero...");
+                            Sleep(100);
+                        }
+                        if (remove("storage/configs/key.txt"))
+                        {
+                            PRINT_SYS_BLUE("Limpando senhas...");
+                            Sleep(100);
+                        }
+                        PRINT_SYS_BLUE("Limpando tela...");
+                        Sleep(100);
+                        PRINT_SYS_BLUE("Verificando perfil...");
+                        Sleep(100);
+                        PRINT_SYS_SUCESS("SUCESSO!!!");
+                        Sleep(100);
+                        PRINT_SYS_SUCESS("Reiniciando...");
+                        Sleep(50);
                         system("cls");
                         verification_profile();
                         reopen(0);
@@ -760,6 +1083,8 @@ int main()
                     cout << "os: " << os << endl;
                     cout << "canstart: " << canstart << endl;
                     cout << "profiled: " << profiled << endl;
+                    cout << "armazenamento_total_aplicativos_num: " << armazenamento_total_aplicativos_num << endl;
+                    cout << "armazenamento_total_aplicativos_str: " << armazenamento_total_aplicativos_str << endl;
                 }
                 else if (comando.rfind("down_app", 0) == 0)
                 {
@@ -775,7 +1100,7 @@ int main()
                     }
 
                     string filename = link.substr(pos + 1);
-                    string path = "apps/" + filename;
+                    string path = "storage/apps/" + filename;
 
                     install_obj_curl(link, path);
                     send_historico_apps(filename + " -> " + link);
@@ -789,10 +1114,38 @@ int main()
                 {
                     clear_historico_apps();
                 }
+                else if (comando == "check_storage" || comando == "check_armazenamento")
+                {
+                    verificar_armazenamento();
+                    cout << armazenamento_total_aplicativos_str << "\n";
+                }
+                else if (comando == "security")
+                {
+                    MOPTS::MenuOption security_opts[] = {
+                        {"Senhas", "senhas", security_aba},
+                        {"Voltar", "voltar", security_aba},
+                    };
+                    MOPTS::ShowMenu("Configuracoes de seguranca", security_opts, "> ", "");
+                }
+                else if (comando == "system_info" || comando == "sys_info")
+                {
+                    cout << "OS: BigDragonOS" << endl;
+                    cout << "Storage: " << armazenamento_total_aplicativos_str << endl;
+                    cout << "Theme: " << theme << endl;
+                    cout << "User: " << usernameprofile << endl;
+                    cout << "Gender: " << genderuser << endl;
+                    cout << "Actual version: " << thisvers << endl;
+                    cout << "This version: " << actualvers << endl;
+                }
+                else if (comando == "beep")
+                {
+                    tocarSom("storage\\configs\\sounds\\beep.wav");
+                }
                 else
                 {
                     cout << "Comando desconhecido\n";
                 }
+                tocarSom("storage\\configs\\sounds\\pop.wav");
             }
         }
     }
