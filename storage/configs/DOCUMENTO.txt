@@ -1,0 +1,30 @@
+exit -> Fecha o sistema
+reload -> Reinicia o sistema
+exec_apps [NOME_DO_APLICATIVO] -> Executa um arquivo via .exe (mais rápido)
+show_exec_apps -> Mostra todos os aplicativos instalados
+test_apps [NOME_DO_APLICATIVO] -> Mostra as informações do aplicativo
+del_app [NOME_DO_APLICATIVO] -> Deleta um aplicativo
+down_app [LINK_DO_RAW] -> Abaixa um aplicativo (Tome cuidado)
+say [TEXTO] -> Mostra um texto ao terminal
+clear -> Limpa o terminal
+user_info -> Mostra as informações do usuario
+format_os -> Formata o sistema (Os aplicativos ainda fica no sistema)
+check_version -> Verifica a sua versão
+check_doc -> Mostra o documento
+check_var -> Mostra todas as variáveis
+check_notifications -> Mostra as notificações (Não usado mais)
+clear_notifications -> Limpa as notificações (Não usado mais)
+check_history -> Mostra o histórico de aplicativos abaixados
+clear_history -> Limpa o histórico de aplicativos abaixados
+security -> Abre o menu de configurações de segurança
+shutdown -> Desliga o sistema
+configs -> Abre as configurações
+beep -> Toca um som
+sys_info -> Mostra as informações do sistema
+check_storage -> Verifica o armazenamento usado no sistema
+credits -> Mostra os créditos
+clear_logs -> Limpa todas as logs
+clear_logs_error -> Limpa as logs de erro
+clear_logs_history -> Limpa as logs de histórico
+show_logs_error -> Mostra as logs de erro
+show_logs_history -> Mostra as logs de histórico
