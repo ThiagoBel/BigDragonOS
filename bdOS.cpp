@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <sys/stat.h>
 #include <algorithm>
+#include <vector>
 #include <cwctype>
 #include <functional>
 #pragma comment(lib, "winmm.lib")
@@ -20,6 +21,8 @@ using namespace std;
 string notificationsfile = "storage/configs/notifications.txt";
 string historico_apps_vc = "storage/configs/historico_apps_vc.txt";
 string loadertemp = "storage/configs/loader_info_temp.txt";
+string mutexfile = "storage/configs/mutex.txt";
+string sound_config = "storage/configs/sound.txt";
 string senhakey = "storage/configs/key.txt";
 string versionweb = "https://raw.githubusercontent.com/ThiagoBel/versions_apps/refs/heads/main/bdos/bdos_version.txt";
 string updatesnweb = "https://raw.githubusercontent.com/ThiagoBel/versions_apps/refs/heads/main/bdos/bdos_updates.txt";
@@ -27,10 +30,12 @@ string docweb = "https://raw.githubusercontent.com/ThiagoBel/versions_apps/refs/
 string usernameprofile = "";
 string genderuser = "";
 string SENHAFINAL = "";
+bool mutex_avaliable = true;
+bool sound_value = true;
 bool entrada_pela_senha = false;
 unsigned long long armazenamento_total_aplicativos_num = 0;
 string armazenamento_total_aplicativos_str = "0 bytes";
-string thisvers = "1.0";
+string thisvers = "1.5";
 string actualvers = "nl";
 string theme = "0c";
 string os = "";
@@ -40,6 +45,70 @@ bool config_perm_1 = false;
 bool config_perm_2 = false;
 bool config_perm_3 = false;
 bool profiled = false;
+
+vector<string> comandos_validos = {
+    "exit", "close", "reload",
+    "show_apps", "show_exec_apps",
+    "open_apps", "exec_apps",
+    "theme", "c_theme",
+    "clear", "down_app",
+    "user_info", "userinfo",
+    "security",
+    "check_version", "check_updates",
+    "check_doc", "help", "check_storage",
+    "system_info", "beep"
+
+};
+
+void clear_cmd()
+{
+    system("cls");
+}
+
+int levenshtein(const string &a, const string &b)
+{
+    vector<vector<int>> dp(a.size() + 1, vector<int>(b.size() + 1));
+
+    for (size_t i = 0; i <= a.size(); i++)
+        dp[i][0] = i;
+
+    for (size_t j = 0; j <= b.size(); j++)
+        dp[0][j] = j;
+
+    for (size_t i = 1; i <= a.size(); i++)
+    {
+        for (size_t j = 1; j <= b.size(); j++)
+        {
+            int custo = (a[i - 1] == b[j - 1]) ? 0 : 1;
+            dp[i][j] = min({dp[i - 1][j] + 1,
+                            dp[i][j - 1] + 1,
+                            dp[i - 1][j - 1] + custo});
+        }
+    }
+
+    return dp[a.size()][b.size()];
+}
+
+string sugerir_comando(const string &digitado)
+{
+    int menor_dist = 999;
+    string melhor = "";
+
+    for (const string &cmd : comandos_validos)
+    {
+        int d = levenshtein(digitado, cmd);
+        if (d < menor_dist)
+        {
+            menor_dist = d;
+            melhor = cmd;
+        }
+    }
+
+    if (menor_dist <= 3)
+        return melhor;
+
+    return "";
+}
 
 string getExeDir()
 {
@@ -51,8 +120,11 @@ string getExeDir()
 
 void tocarSom(const char *relativo)
 {
-    string caminho = getExeDir() + "\\" + relativo;
-    PlaySoundA(caminho.c_str(), NULL, SND_FILENAME | SND_ASYNC);
+    if (sound_value == true)
+    {
+        string caminho = getExeDir() + "\\" + relativo;
+        PlaySoundA(caminho.c_str(), NULL, SND_FILENAME | SND_ASYNC);
+    }
 }
 
 void asciicall()
@@ -416,15 +488,15 @@ void carregarTema()
 void carregamento()
 {
     loadinfos();
-    system("cls");
+    clear_cmd();
     system("color 05");
     cout << "Carregando...\n";
     Sleep(1000);
-    system("cls");
+    clear_cmd();
     cout << "Ola " << usernameprofile << "!";
     Sleep(500);
     system(("color " + theme).c_str());
-    system("cls");
+    clear_cmd();
     tocarSom("storage\\configs\\sounds\\intro.wav");
 }
 
@@ -434,7 +506,7 @@ void reopen(const int &ret)
     // exit(ret);
 
     carregarTema();
-    system("cls");
+    clear_cmd();
     carregamento();
     asciicall();
     check_version(true);
@@ -578,6 +650,60 @@ void verification_curl()
     else
     {
         config_perm_3 = false;
+    }
+}
+
+void put_volume_sound()
+{
+    ifstream coiso(sound_config);
+    string linha;
+
+    if (coiso.is_open())
+    {
+        while (getline(coiso, linha))
+        {
+            if (linha == "true")
+            {
+                sound_value = true;
+            }
+            if (linha == "false")
+            {
+                sound_value = false;
+            }
+            break;
+        }
+        coiso.close();
+    }
+    else
+    {
+        cout << "Erro" << endl;
+    }
+}
+
+void set_sound(const string &value)
+{
+    if (value == "true")
+    {
+        sound_value = true;
+    }
+    else if (value == "false")
+    {
+        sound_value = false;
+    }
+    else
+    {
+        cout << "Erro" << endl;
+    }
+    ofstream coiso(sound_config);
+
+    if (coiso.is_open())
+    {
+        coiso << value;
+        coiso.close();
+    }
+    else
+    {
+        cout << "Erro" << endl;
     }
 }
 
@@ -740,7 +866,7 @@ void criar_senha(const string &)
         file.close();
         PRINT_SYS_SUCESS("Senha criada com sucesso!");
         Sleep(250);
-        system("cls");
+        clear_cmd();
         asciicall();
     }
     else
@@ -779,9 +905,76 @@ void security_aba(const string &what)
     }
 }
 
+void check_mutex()
+{
+    ifstream muttt(mutexfile);
+    string linha;
+    if (muttt.is_open())
+    {
+        while (getline(muttt, linha))
+        {
+            if (linha == "true")
+            {
+                mutex_avaliable = true;
+            }
+            else if (linha == "false")
+            {
+                mutex_avaliable = false;
+            }
+            else
+            {
+                cout << "Erro mutex" << endl;
+            }
+        }
+        muttt.close();
+    }
+}
+
+void ativar_mutex(const string &clsss)
+{
+    ofstream muttt(mutexfile);
+    if (muttt.is_open())
+    {
+        muttt << clsss;
+        muttt.close();
+    }
+    else
+    {
+        cout << "Error" << endl;
+    }
+}
+
+void configs_aba(const string &what)
+{
+    if (what == "mutex")
+    {
+        MOPTS::MenuOption MutexA[] = {
+            {"Ativar Mutex", "true", ativar_mutex},
+            {"Desativar Mutex", "false", ativar_mutex},
+        };
+
+        MOPTS::ShowMenu("Mutex", MutexA, "> ", "");
+    }
+    else if (what == "sounds")
+    {
+        MOPTS::MenuOption SoundsA[] = {
+            {"Ativar sons", "true", set_sound},
+            {"Desativar sons", "false", set_sound},
+        };
+
+        MOPTS::ShowMenu("Sons", SoundsA, "> ", "");
+    }
+    else
+    {
+    }
+}
 int main()
 {
-    HANDLE h = CreateMutexA(0, 1, "_BigDragonOS__bdOS__");
+    check_mutex();
+    if (mutex_avaliable == true)
+    {
+        HANDLE h = CreateMutexA(0, 1, "_BigDragonOS__bdOS__");
+    }
     MOPTS::color = false;
     MOPTS::all_color_line = false;
     MOPTS::clear_opts = false;
@@ -799,6 +992,7 @@ int main()
 
         if (canstart == true)
         {
+            put_volume_sound();
             while (true)
             {
                 if (senha_loader() == true)
@@ -828,6 +1022,7 @@ int main()
             string comandoa;
             while (true)
             {
+                string modengc = "sucess";
                 verificar_armazenamento();
                 cout << "\n->> ";
                 getline(cin, comandoa);
@@ -845,6 +1040,10 @@ int main()
                 else if (comando == "show_apps")
                 {
                     listarArquivos("storage/apps");
+                }
+                else if (comando == "show_exec_apps")
+                {
+                    listarArquivos("storage/apps/EXECUTER");
                 }
                 else if (comando.rfind("open_apps ", 0) == 0)
                 {
@@ -983,7 +1182,7 @@ int main()
                 }
                 else if (comando == "clear" || comando == "cls")
                 {
-                    system("cls");
+                    clear_cmd();
                     Sleep(100);
                     asciicall();
                 }
@@ -999,44 +1198,52 @@ int main()
 
                     if (vv == "Y" || vv == "y")
                     {
+                        int delaytime = 50;
                         PRINT_SYS_BLUE("Formatando...");
-                        Sleep(100);
+                        Sleep(delaytime);
                         theme = "0c";
                         PRINT_SYS_BLUE("Definindo temas...");
-                        Sleep(100);
+                        Sleep(delaytime);
                         salvarTema();
                         PRINT_SYS_BLUE("Salvando temas definidos...");
-                        Sleep(100);
+                        Sleep(delaytime);
                         clear_notifications();
                         PRINT_SYS_BLUE("Limpando notificacoes...");
-                        Sleep(100);
+                        Sleep(delaytime);
+                        set_sound("true");
+                        PRINT_SYS_BLUE("Arrumando sons...");
+                        Sleep(delaytime);
                         clear_historico_apps();
                         PRINT_SYS_BLUE("Limpando historicos...");
-                        Sleep(100);
+                        Sleep(delaytime);
+                        ativar_mutex("true");
+                        PRINT_SYS_BLUE("Arrumando mutex...");
+                        Sleep(delaytime);
                         if (remove("storage/configs/profile.txt"))
                         {
                             PRINT_SYS_BLUE("Limpando perfil...");
-                            Sleep(100);
+                            Sleep(delaytime);
                         }
                         if (remove("storage/configs/gender.txt"))
                         {
                             PRINT_SYS_BLUE("Limpando genero...");
-                            Sleep(100);
+                            Sleep(delaytime);
                         }
                         if (remove("storage/configs/key.txt"))
                         {
                             PRINT_SYS_BLUE("Limpando senhas...");
-                            Sleep(100);
+                            Sleep(delaytime);
                         }
+
                         PRINT_SYS_BLUE("Limpando tela...");
-                        Sleep(100);
+                        Sleep(delaytime);
                         PRINT_SYS_BLUE("Verificando perfil...");
-                        Sleep(100);
+                        Sleep(delaytime);
                         PRINT_SYS_SUCESS("SUCESSO!!!");
-                        Sleep(100);
+                        Sleep(delaytime);
                         PRINT_SYS_SUCESS("Reiniciando...");
-                        Sleep(50);
-                        system("cls");
+                        Sleep(delaytime / 2);
+                        clear_cmd();
                         verification_profile();
                         reopen(0);
                     }
@@ -1141,11 +1348,63 @@ int main()
                 {
                     tocarSom("storage\\configs\\sounds\\beep.wav");
                 }
+                else if (comando.rfind("sound ", 0) == 0)
+                {
+                    string onouoff = comando.substr(6);
+                    if (onouoff == "on" || onouoff == "unmute")
+                    {
+                        set_sound("true");
+                    }
+                    else if (onouoff == "off" || onouoff == "mute")
+                    {
+                        set_sound("false");
+                    }
+                    else
+                    {
+                        cout << "Erro" << endl;
+                    }
+                }
+                else if (comando == "shutdown")
+                {
+                    while (true)
+                    {
+                        clear_cmd();
+                        Sleep(1000);
+                    }
+                }
+                else if (comando == "configs")
+                {
+                    MOPTS::MenuOption configs_opts[] = {
+                        {"Mutex", "mutex", configs_aba},
+                        {"Sounds", "sounds", configs_aba},
+                        {"Voltar", "voltar", configs_aba},
+                    };
+
+                    MOPTS::ShowMenu("Configuracoes", configs_opts, "> ", "");
+                }
                 else
                 {
-                    cout << "Comando desconhecido\n";
+                    string sugestao = sugerir_comando(comando);
+
+                    if (!sugestao.empty())
+                    {
+                        cout << "Comando desconhecido.\n";
+                        cout << "Voce quis dizer: " << sugestao << " ?\n";
+                    }
+                    else
+                    {
+                        cout << "Comando desconhecido\n";
+                    }
+                    modengc = "error";
                 }
-                tocarSom("storage\\configs\\sounds\\pop.wav");
+                if (modengc == "sucess")
+                {
+                    tocarSom("storage\\configs\\sounds\\pop.wav");
+                }
+                else
+                {
+                    tocarSom("storage\\configs\\sounds\\error.wav");
+                }
             }
         }
     }
