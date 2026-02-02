@@ -18,6 +18,7 @@ Olá!
 #include <fstream>
 #include <cstdlib>
 #include <sys/stat.h>
+#include <iomanip>
 #include <algorithm>
 #include <vector>
 #include <cwctype>
@@ -28,12 +29,19 @@ Olá!
 
 #include "storage/configs/_libs/icolor.hpp"
 #include "storage/configs/_libs/MOPTS.h"
+#include "storage/configs/_libs/discord/discord_rpc.h"
+#include "storage/configs/sub_configs/headers/CL.hpp"
 using namespace std;
+
+DiscordEventHandlers handlers;
+DiscordRichPresence presence;
 
 string notificationsfile = "storage/configs/notifications.txt";
 string historico_apps_vc = "storage/configs/historico_apps_vc.txt";
 string outdated_apps_file = "storage/configs/outdated_apps.txt";
+string discord_rpc_activation_file = "storage/configs/discord-rpc-activation.txt";
 string loadertemp = "storage/configs/loader_info_temp.txt";
+string clearcmdfile = "storage/configs/clear_cmd.txt";
 string mutexfile = "storage/configs/mutex.txt";
 string sound_config = "storage/configs/sound.txt";
 string senhakey = "storage/configs/key.txt";
@@ -48,6 +56,9 @@ string genderuser = "";
 string SENHAFINAL = "";
 string modengc = "sucess";
 
+bool discord_rpc_prauso = true;
+bool discord_disponivel = false;
+bool clearcmd = false;
 bool logs = true;
 bool canpop = false;
 bool outdated_apps = true;
@@ -56,7 +67,7 @@ bool sound_value = true;
 bool entrada_pela_senha = false;
 unsigned long long armazenamento_total_aplicativos_num = 0;
 string armazenamento_total_aplicativos_str = "0 bytes";
-string thisvers = "1.6";
+string thisvers = "1.7";
 string actualvers = "nl";
 string os = "";
 bool canstart = false;
@@ -65,6 +76,133 @@ bool config_perm_1 = false;
 bool config_perm_2 = false;
 bool config_perm_3 = false;
 bool profiled = false;
+#include <iostream>
+#include <string>
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "storage/configs/_libs/stb_image.h"
+
+void ImagemParaASCII(const string &caminhoImagem, int larguraASCII = 80)
+{
+    int w, h, c;
+    unsigned char *img = stbi_load(caminhoImagem.c_str(), &w, &h, &c, 3);
+
+    if (!img)
+    {
+        cout << "Erro ao carregar a imagem: " << caminhoImagem << "\n";
+        return;
+    }
+
+    float proporcao = (float)h / w;
+    int alturaASCII = (int)(proporcao * larguraASCII * 0.55f);
+
+    string ascii = "@%#*+=-:. ";
+
+    for (int y = 0; y < alturaASCII; y++)
+    {
+        for (int x = 0; x < larguraASCII; x++)
+        {
+            int px = x * w / larguraASCII;
+            int py = y * h / alturaASCII;
+
+            int i = (py * w + px) * 3;
+            int gray = (img[i] + img[i + 1] + img[i + 2]) / 3;
+
+            int idx = (255 - gray) * (ascii.size() - 1) / 255;
+            cout << icolor::yellow() << ascii[idx] << icolor::finished();
+        }
+        cout << "\n";
+    }
+
+    stbi_image_free(img);
+}
+
+void ImagemParaASCII_FundoHash(const string &caminhoImagem, int larguraASCII = 80)
+{
+    int w, h, c;
+    unsigned char *img = stbi_load(caminhoImagem.c_str(), &w, &h, &c, 3);
+
+    if (!img)
+    {
+        cout << "Erro ao carregar a imagem: " << caminhoImagem << "\n";
+        return;
+    }
+
+    float proporcao = (float)h / w;
+    int alturaASCII = (int)(proporcao * larguraASCII * 0.55f);
+
+    const int LIMIAR = 128;
+
+    for (int y = 0; y < alturaASCII; y++)
+    {
+        for (int x = 0; x < larguraASCII; x++)
+        {
+            int px = x * w / larguraASCII;
+            int py = y * h / alturaASCII;
+
+            int i = (py * w + px) * 3;
+            int gray = (img[i] + img[i + 1] + img[i + 2]) / 3;
+
+            if (gray < LIMIAR)
+                cout << "#";
+            else
+                cout << " ";
+        }
+        cout << "\n";
+    }
+
+    stbi_image_free(img);
+}
+
+void setTitleBasic()
+{
+    system(("title Big Dragon OS - " + thisvers).c_str());
+}
+
+void iniciarDiscordRPC()
+{
+    memset(&handlers, 0, sizeof(handlers));
+
+    Discord_Initialize(
+        "1467630970881446050",
+        &handlers,
+        1,
+        NULL);
+
+    memset(&presence, 0, sizeof(presence));
+
+    presence.state = "Inicializando sistema";
+    presence.details = "BigDragonOS";
+    presence.largeImageKey = "bdoslogo";
+    presence.largeImageText = "Big Dragon OS";
+    presence.startTimestamp = time(NULL);
+
+    Discord_UpdatePresence(&presence);
+
+    discord_disponivel = true;
+}
+
+void atualizarDiscordRPC(const char *estado, const char *detalhes)
+{
+    if (!discord_disponivel || discord_rpc_prauso == false)
+        return;
+
+    static string detalhesComVersao;
+    detalhesComVersao = string(detalhes) + " " + thisvers;
+
+    presence.state = estado;
+    presence.details = detalhesComVersao.c_str();
+    Discord_UpdatePresence(&presence);
+}
+
+void finalizarDiscordRPC()
+{
+    if (!discord_disponivel)
+        return;
+
+    Discord_ClearPresence();
+    Discord_Shutdown();
+}
 
 string getDateTime()
 {
@@ -253,6 +391,13 @@ void asciicall()
          << icolor::finished();
 }
 
+void clear_cmd_ascii()
+{
+    Sleep(1000);
+    system("cls");
+    asciicall();
+}
+
 void gender_user(const string &classss)
 {
     genderuser = classss;
@@ -401,20 +546,38 @@ unsigned long long calcularTamanhoPasta(const string &pasta)
     FindClose(hFind);
     return total;
 }
+
+string pegarPastaPai(const string &caminho)
+{
+    size_t pos = caminho.find_last_of("/\\");
+    if (pos == string::npos)
+    {
+        return ".";
+    }
+    return caminho.substr(0, pos);
+}
+
 void verificar_armazenamento()
 {
     string pasta = "storage";
-    string armazenamentot = "storage/configs/armazenamento_check.txt";
+    string pasta_pai = pegarPastaPai(pasta);
 
-    unsigned long long total_bytes = calcularTamanhoPasta(pasta);
+    string armazenamentot = pasta + "/configs/armazenamento_check.txt";
+
+    unsigned long long total_bytes = calcularTamanhoPasta(pasta_pai);
+
+    double total_mb = static_cast<double>(total_bytes) / (1024.0 * 1024.0);
 
     armazenamento_total_aplicativos_num = total_bytes;
-    armazenamento_total_aplicativos_str = to_string(total_bytes) + " bytes";
+
+    ostringstream ss;
+    ss << fixed << setprecision(2) << total_mb << " MB";
+    armazenamento_total_aplicativos_str = ss.str();
 
     ofstream saida(armazenamentot);
     if (saida.is_open())
     {
-        saida << total_bytes;
+        saida << ss.str();
         saida.close();
     }
 }
@@ -598,7 +761,7 @@ void reopen(const int &ret)
     carregamento();
     asciicall();
     check_version(true);
-    system("title Big Dragon OS");
+    setTitleBasic();
 }
 
 bool senha_loader()
@@ -632,6 +795,7 @@ bool senha_loader()
 
 void profile_config()
 {
+    atualizarDiscordRPC("Criando perfil", "No terminal do BigDragonOS");
     asciicall();
     string nameuser = "";
     cout << "Seja bem-vindo(a) ao BigDragonOS, um sistema operacional bem simples, antes de tudo, precisaremos de algumas informações." << endl;
@@ -682,7 +846,7 @@ void verification_os()
     }
     else
     {
-        system("title Big Dragon OS");
+        setTitleBasic();
         config_perm_1 = true;
     }
 }
@@ -795,7 +959,7 @@ void set_sound(const string &value)
     }
 }
 
-void executarComCancelamento(const string &exe)
+void executarComCancelamento(const string &exe, const string &appusando)
 {
     STARTUPINFOA si = {sizeof(STARTUPINFOA)};
     PROCESS_INFORMATION pi;
@@ -804,6 +968,7 @@ void executarComCancelamento(const string &exe)
     HANDLE hInput = GetStdHandle(STD_INPUT_HANDLE);
     DWORD modoOriginal;
     GetConsoleMode(hInput, &modoOriginal);
+    atualizarDiscordRPC(("Aplicativo aberto: " + appusando).c_str(), "No terminal do BigDragonOS");
 
     if (CreateProcessA(
             NULL,
@@ -841,7 +1006,7 @@ void executarComCancelamento(const string &exe)
 
         CloseHandle(pi.hProcess);
         CloseHandle(pi.hThread);
-        system("title Big Dragon OS");
+        setTitleBasic();
     }
     else
     {
@@ -1129,7 +1294,7 @@ void check_logs()
     }
     else
     {
-        PRINT_SYS_FATAL("Erro ao verificar as logs pois o arquivo não existe");
+        PRINT_SYS_FATAL("Erro ao verificar as logs pois o save não existe");
     }
 }
 
@@ -1155,7 +1320,122 @@ void set_logs(const string &abca)
     }
     else
     {
-        PRINT_SYS_FATAL("Erro ao setar logs, o arquivo não existe");
+        PRINT_SYS_FATAL("Erro ao ler o save");
+    }
+}
+
+void check_clear_cmd()
+{
+    ifstream valval(clearcmdfile);
+    string linha;
+    if (valval.is_open())
+    {
+        while (getline(valval, linha))
+        {
+            if (linha == "true")
+            {
+                clearcmd = true;
+            }
+            else if (linha == "false")
+            {
+                clearcmd = false;
+            }
+            else
+            {
+                PRINT_SYS_FATAL("Erro no sinalizador, ta errado");
+            }
+            break;
+        }
+        valval.close();
+    }
+    else
+    {
+        PRINT_SYS_FATAL("Erro ao ler o save");
+    }
+}
+
+void put_clear_cmd(const string &mode)
+{
+    ofstream filedonegc(clearcmdfile);
+    if (filedonegc.is_open())
+    {
+        if (mode == "true")
+        {
+            clearcmd = true;
+        }
+        else if (mode == "false")
+        {
+            clearcmd = false;
+        }
+        else
+        {
+            PRINT_SYS_FATAL("Erro no sinalizador, ta errado");
+        }
+        filedonegc << mode;
+        filedonegc.close();
+    }
+    else
+    {
+        PRINT_SYS_FATAL("Erro, o salvamento do clear cmd não foi bem criado, tente denovo");
+    }
+}
+
+void check_discord_rpc_activation()
+{
+    ifstream valval(discord_rpc_activation_file);
+    string linha;
+    if (valval.is_open())
+    {
+        while (getline(valval, linha))
+        {
+            if (linha == "true")
+            {
+                discord_rpc_prauso = true;
+            }
+            else if (linha == "false")
+            {
+                discord_rpc_prauso = false;
+            }
+            else
+            {
+                PRINT_SYS_FATAL("Erro no sinalizador, ta errado");
+            }
+            break;
+        }
+        valval.close();
+    }
+    else
+    {
+        PRINT_SYS_FATAL("Erro ao ler o save");
+    }
+}
+
+void discord_rpc_activation(const string &mode)
+{
+    ofstream filedonegc(discord_rpc_activation_file);
+    if (!filedonegc.is_open())
+    {
+        PRINT_SYS_FATAL("Erro ao salvar config do Discord Rich Presence");
+        return;
+    }
+
+    filedonegc << mode;
+    filedonegc.close();
+
+    if (mode == "true")
+    {
+        discord_rpc_prauso = true;
+        iniciarDiscordRPC();
+    }
+    else if (mode == "false")
+    {
+        discord_rpc_prauso = false;
+        finalizarDiscordRPC();
+        discord_disponivel = false;
+    }
+    else
+    {
+        PRINT_SYS_FATAL("Erro o sinalizador foi sinalizado errado, tente novamente");
     }
 }
 
@@ -1188,6 +1468,24 @@ void configs_aba(const string &what)
 
         MOPTS::ShowMenu("Logs", SoundsA, "> ", "");
     }
+    else if (what == "clear_cmd")
+    {
+        MOPTS::MenuOption clearcmdA[] = {
+            {"Ativar limpeza de cmd", "true", put_clear_cmd},
+            {"Desativar limpeza de cmd", "false", put_clear_cmd},
+        };
+
+        MOPTS::ShowMenu("Limpeza de cmd", clearcmdA, "> ", "");
+    }
+    else if (what == "discord-rpc")
+    {
+        MOPTS::MenuOption clearcmdA[] = {
+            {"Ativar Discord Rich Presence", "true", discord_rpc_activation},
+            {"Desativar Discord Rich Presence", "false", discord_rpc_activation},
+        };
+
+        MOPTS::ShowMenu("Discord Rich Presence", clearcmdA, "> ", "");
+    }
     else
     {
     }
@@ -1196,6 +1494,13 @@ void configs_aba(const string &what)
 int main()
 {
     SetConsoleOutputCP(CP_UTF8);
+    check_discord_rpc_activation();
+
+    if (discord_rpc_prauso == true)
+    {
+        iniciarDiscordRPC();
+    }
+
     check_mutex();
     if (mutex_avaliable == true)
     {
@@ -1245,9 +1550,11 @@ int main()
             carregamento();
             asciicall();
             check_version(true);
+            check_clear_cmd();
             string comandoa;
             while (true)
             {
+                atualizarDiscordRPC("Sistema iniciado", "No terminal do BigDragonOS");
                 modengc = "sucess";
                 verificar_armazenamento();
                 cout << icolor::white() << "\n[" << icolor::finished() << icolor::gray_10() << "bdOS@" << usernameprofile << icolor::finished() << icolor::white() << "] " << icolor::finished() << "->> ";
@@ -1256,6 +1563,7 @@ int main()
 
                 if (comando == "exit" || comando == "close")
                 {
+                    finalizarDiscordRPC();
                     exit(0);
                     break;
                 }
@@ -1293,7 +1601,7 @@ int main()
                         int result = system(cmdCompilar.c_str());
                         if (result == 0)
                         {
-                            executarComCancelamento(exe);
+                            executarComCancelamento(exe, app);
                             if (remove(exe.c_str()) == 0)
                             {
                             }
@@ -1311,7 +1619,7 @@ int main()
                 {
                     string app = comando.substr(10);
                     string caminho = "storage/apps/EXECUTER/" + app + ".exe";
-                    executarComCancelamento(caminho);
+                    executarComCancelamento(caminho, app);
                 }
 
                 else if (comando.rfind("open_apps_lib ", 0) == 0)
@@ -1333,7 +1641,7 @@ int main()
 
                         if (result == 0)
                         {
-                            executarComCancelamento(exe);
+                            executarComCancelamento(exe, app);
                             if (remove(exe.c_str()) != 0)
                             {
                             }
@@ -1414,6 +1722,7 @@ int main()
 
                     if (vv == "Y" || vv == "y")
                     {
+                        atualizarDiscordRPC("Formatando sistema...", "No terminal do BigDragonOS");
                         int delaytime = 50;
                         canpop = false;
                         PRINT_SYS_BLUE("Formatando...");
@@ -1436,6 +1745,12 @@ int main()
                         Sleep(delaytime);
                         ativar_mutex("true");
                         PRINT_SYS_BLUE("Arrumando mutex...");
+                        Sleep(delaytime);
+                        discord_rpc_activation("true");
+                        PRINT_SYS_BLUE("Arrumando discord RPC...");
+                        Sleep(delaytime);
+                        put_clear_cmd("false");
+                        PRINT_SYS_BLUE("Arrumando clearcmd...");
                         Sleep(delaytime);
                         ativar_outdated_apps("true");
                         PRINT_SYS_BLUE("Arrumando outdated_apps...");
@@ -1464,6 +1779,7 @@ int main()
                         Sleep(delaytime);
                         PRINT_SYS_SUCESS("Reiniciando...");
                         Sleep(delaytime / 2);
+                        atualizarDiscordRPC("Formatação do sistema concluída", "No terminal do BigDragonOS");
                         clear_cmd();
                         verification_profile();
                         reopen(0);
@@ -1555,6 +1871,7 @@ int main()
                 }
                 else if (comando == "security")
                 {
+                    atualizarDiscordRPC("Vendo configurações de segurança do sistema", "No terminal do BigDragonOS");
                     MOPTS::MenuOption security_opts[] = {
                         {"Senhas", "senhas", security_aba},
                         {"Outdated apps", "outdated_apps", security_aba},
@@ -1602,10 +1919,13 @@ int main()
                 }
                 else if (comando == "configs")
                 {
+                    atualizarDiscordRPC("Vendo configurações do sistema", "No terminal do BigDragonOS");
                     MOPTS::MenuOption configs_opts[] = {
                         {"Mutex", "mutex", configs_aba},
                         {"Sounds", "sounds", configs_aba},
                         {"Logs", "logs", configs_aba},
+                        {"Clear cmd", "clear_cmd", configs_aba},
+                        {"Discord Rich Presence", "discord-rpc", configs_aba},
                         {"Voltar", "voltar", configs_aba},
                     };
 
@@ -1630,38 +1950,150 @@ int main()
                 }
                 else if (comando == "show_logs_error")
                 {
-                    ifstream filefilefile(errors_log_file);
-                    string linha;
-                    if (filefilefile.is_open())
+                    if (HBDOS::CHECK_LOGS_ERR() != "ERROR")
                     {
-                        while (getline(filefilefile, linha))
-                        {
-                            PRINT_SYS_BLUE(linha);
-                        }
+                        PRINT_SYS_BLUE(HBDOS::CHECK_LOGS_ERR());
                     }
                     else
                     {
-                        PRINT_SYS_FATAL("Erro ao mostrar as logs de erro");
+                        PRINT_SYS_FATAL("Erro na transmissão de logs, o arquivo de logs não existe");
                     }
-                    filefilefile.close();
                 }
                 else if (comando == "show_logs_history")
                 {
-                    ifstream filefilefile(history_log_file);
-                    string linha;
-                    if (filefilefile.is_open())
+                    if (HBDOS::CHECK_LOGS_HIS() != "ERROR")
                     {
-                        while (getline(filefilefile, linha))
-                        {
-                            PRINT_SYS_BLUE(linha);
-                        }
+                        PRINT_SYS_BLUE(HBDOS::CHECK_LOGS_HIS());
                     }
                     else
                     {
-                        PRINT_SYS_FATAL("Erro ao mostrar as logs de historico de comandos");
+                        PRINT_SYS_FATAL("Erro na transmissão de logs, o arquivo de logs não existe");
                     }
-                    filefilefile.close();
                 }
+                else if (comando == "custom")
+                {
+                    string msggg = "";
+                    string nothing;
+                    getline(cin, msggg);
+                    atualizarDiscordRPC(msggg.c_str(), "No terminal do BigDragonOS");
+                    getline(cin, nothing);
+                }
+                else if (comando == "tests")
+                {
+                    atualizarDiscordRPC("Testando o sistema", "No terminal do BigDragonOS");
+                    MOPTS::MenuOption test_ops[] = {
+                        {"IMG1", "img", [](const string &)
+                         {
+                             ImagemParaASCII_FundoHash("storage/configs/sub_configs/BDOSlogo2.png", 100);
+                         }},
+                        {"IMG2", "img", [](const string &)
+                         {
+                             ImagemParaASCII("storage/configs/sub_configs/BDOSlogo2.png", 100);
+                         }},
+                        {"Voltar", "voltar", [](const string &) {
+
+                         }},
+                    };
+
+                    MOPTS::ShowMenu("Testes", test_ops, "> ", "");
+                }
+                else if (comando == "open_photo")
+                {
+                    atualizarDiscordRPC("Vendo fotos...", "No terminal do BigDragonOS");
+                    string pasta = "storage/photos/";
+                    vector<string> fotos;
+
+                    WIN32_FIND_DATAA findFileData;
+                    HANDLE hFind = FindFirstFileA((pasta + "*").c_str(), &findFileData);
+
+                    if (hFind != INVALID_HANDLE_VALUE)
+                    {
+                        do
+                        {
+                            string nome = findFileData.cFileName;
+                            if (nome != "." && nome != "..")
+                                fotos.push_back(nome);
+                        } while (FindNextFileA(hFind, &findFileData) != 0);
+
+                        FindClose(hFind);
+                    }
+
+                    if (fotos.empty())
+                    {
+                        cout << "Achamos nenhuma foto" << endl;
+                        system("pause");
+                    }
+                    else
+                    {
+                        auto AbrirFotoEscolhida = [](const string &nomeFoto)
+                        {
+                            PRINT_SYS_YELLOW(nomeFoto);
+                            ImagemParaASCII("storage/photos/" + nomeFoto, 100);
+                        };
+
+                        auto Voltar = [](const string &) {};
+                        vector<MOPTS::MenuOption> opcoes;
+                        for (size_t i = 0; i < fotos.size(); i++)
+                        {
+                            opcoes.push_back({fotos[i], fotos[i], AbrirFotoEscolhida});
+                        }
+
+                        opcoes.push_back({"Voltar", "", Voltar});
+                        MOPTS::ShowMenuDynamic("Fotos", opcoes.data(), opcoes.size(), "> ", "");
+                    }
+                }
+                else if (comando == "del_photo")
+                {
+                    atualizarDiscordRPC("Deletando fotos...", "No terminal do BigDragonOS");
+                    string pasta = "storage/photos/";
+                    vector<string> fotos;
+
+                    WIN32_FIND_DATAA findFileData;
+                    HANDLE hFind = FindFirstFileA((pasta + "*").c_str(), &findFileData);
+
+                    if (hFind != INVALID_HANDLE_VALUE)
+                    {
+                        do
+                        {
+                            string nome = findFileData.cFileName;
+                            if (nome != "." && nome != "..")
+                            {
+                                fotos.push_back(nome);
+                            }
+                        } while (FindNextFileA(hFind, &findFileData) != 0);
+
+                        FindClose(hFind);
+                    }
+
+                    if (fotos.empty())
+                    {
+                        cout << "Achamos nenhuma foto" << endl;
+                        system("pause");
+                    }
+                    else
+                    {
+                        auto DeletarFotoEscolhida = [](const string &nomeFoto)
+                        {
+                            string caminho = "storage/photos/" + nomeFoto;
+                            if (remove(caminho.c_str()) != 0)
+                            {
+                                PRINT_SYS_FATAL("Erro ao deletar foto");
+                            }
+                            system("pause");
+                        };
+
+                        auto Voltar = [](const string &) {};
+                        vector<MOPTS::MenuOption> opcoes;
+                        for (size_t i = 0; i < fotos.size(); i++)
+                        {
+                            opcoes.push_back({fotos[i], fotos[i], DeletarFotoEscolhida});
+                        }
+
+                        opcoes.push_back({"Voltar", "", Voltar});
+                        MOPTS::ShowMenuDynamic("Foto - deletar", opcoes.data(), opcoes.size(), "> ", "");
+                    }
+                }
+
                 else
                 {
                     string sugestao = sugerir_comando(comando);
@@ -1699,6 +2131,10 @@ int main()
                     {
                         PRINT_SYS_FATAL("Erro ao abrir arquivo de logs de histórico");
                     }
+                }
+                if (clearcmd == true)
+                {
+                    clear_cmd_ascii();
                 }
             }
         }

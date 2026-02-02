@@ -1,0 +1,2 @@
+Olá!
+Seja bem vindo ao notepad.exe, um aplicativo de bloco de notas simples
