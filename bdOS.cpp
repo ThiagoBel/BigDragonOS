@@ -9,6 +9,7 @@ bbbbbbb     ddddddd     OOOOOOOO   SSSSSSSSSSS
 Olá!
 */
 
+#define STB_IMAGE_IMPLEMENTATION
 #include <iostream>
 #ifdef _WIN32
 #include <windows.h>
@@ -31,11 +32,13 @@ Olá!
 #include "storage/configs/_libs/MOPTS.h"
 #include "storage/configs/_libs/discord/discord_rpc.h"
 #include "storage/configs/sub_configs/headers/CL.hpp"
+#include "storage/configs/_libs/stb_image.h"
 using namespace std;
 
 DiscordEventHandlers handlers;
 DiscordRichPresence presence;
 
+// salvamentos :D
 string notificationsfile = "storage/configs/notifications.txt";
 string historico_apps_vc = "storage/configs/historico_apps_vc.txt";
 string outdated_apps_file = "storage/configs/outdated_apps.txt";
@@ -67,142 +70,15 @@ bool sound_value = true;
 bool entrada_pela_senha = false;
 unsigned long long armazenamento_total_aplicativos_num = 0;
 string armazenamento_total_aplicativos_str = "0 bytes";
-string thisvers = "1.7";
+string thisvers = "1.7"; // versaozinha
 string actualvers = "nl";
 string os = "";
 bool canstart = false;
 
-bool config_perm_1 = false;
-bool config_perm_2 = false;
-bool config_perm_3 = false;
-bool profiled = false;
-#include <iostream>
-#include <string>
-
-#define STB_IMAGE_IMPLEMENTATION
-#include "storage/configs/_libs/stb_image.h"
-
-void ImagemParaASCII(const string &caminhoImagem, int larguraASCII = 80)
-{
-    int w, h, c;
-    unsigned char *img = stbi_load(caminhoImagem.c_str(), &w, &h, &c, 3);
-
-    if (!img)
-    {
-        cout << "Erro ao carregar a imagem: " << caminhoImagem << "\n";
-        return;
-    }
-
-    float proporcao = (float)h / w;
-    int alturaASCII = (int)(proporcao * larguraASCII * 0.55f);
-
-    string ascii = "@%#*+=-:. ";
-
-    for (int y = 0; y < alturaASCII; y++)
-    {
-        for (int x = 0; x < larguraASCII; x++)
-        {
-            int px = x * w / larguraASCII;
-            int py = y * h / alturaASCII;
-
-            int i = (py * w + px) * 3;
-            int gray = (img[i] + img[i + 1] + img[i + 2]) / 3;
-
-            int idx = (255 - gray) * (ascii.size() - 1) / 255;
-            cout << icolor::yellow() << ascii[idx] << icolor::finished();
-        }
-        cout << "\n";
-    }
-
-    stbi_image_free(img);
-}
-
-void ImagemParaASCII_FundoHash(const string &caminhoImagem, int larguraASCII = 80)
-{
-    int w, h, c;
-    unsigned char *img = stbi_load(caminhoImagem.c_str(), &w, &h, &c, 3);
-
-    if (!img)
-    {
-        cout << "Erro ao carregar a imagem: " << caminhoImagem << "\n";
-        return;
-    }
-
-    float proporcao = (float)h / w;
-    int alturaASCII = (int)(proporcao * larguraASCII * 0.55f);
-
-    const int LIMIAR = 128;
-
-    for (int y = 0; y < alturaASCII; y++)
-    {
-        for (int x = 0; x < larguraASCII; x++)
-        {
-            int px = x * w / larguraASCII;
-            int py = y * h / alturaASCII;
-
-            int i = (py * w + px) * 3;
-            int gray = (img[i] + img[i + 1] + img[i + 2]) / 3;
-
-            if (gray < LIMIAR)
-                cout << "#";
-            else
-                cout << " ";
-        }
-        cout << "\n";
-    }
-
-    stbi_image_free(img);
-}
-
-void setTitleBasic()
-{
-    system(("title Big Dragon OS - " + thisvers).c_str());
-}
-
-void iniciarDiscordRPC()
-{
-    memset(&handlers, 0, sizeof(handlers));
-
-    Discord_Initialize(
-        "1467630970881446050",
-        &handlers,
-        1,
-        NULL);
-
-    memset(&presence, 0, sizeof(presence));
-
-    presence.state = "Inicializando sistema";
-    presence.details = "BigDragonOS";
-    presence.largeImageKey = "bdoslogo";
-    presence.largeImageText = "Big Dragon OS";
-    presence.startTimestamp = time(NULL);
-
-    Discord_UpdatePresence(&presence);
-
-    discord_disponivel = true;
-}
-
-void atualizarDiscordRPC(const char *estado, const char *detalhes)
-{
-    if (!discord_disponivel || discord_rpc_prauso == false)
-        return;
-
-    static string detalhesComVersao;
-    detalhesComVersao = string(detalhes) + " " + thisvers;
-
-    presence.state = estado;
-    presence.details = detalhesComVersao.c_str();
-    Discord_UpdatePresence(&presence);
-}
-
-void finalizarDiscordRPC()
-{
-    if (!discord_disponivel)
-        return;
-
-    Discord_ClearPresence();
-    Discord_Shutdown();
-}
+bool config_perm_1 = false; // configs para entrar
+bool config_perm_2 = false; // configs para entrar
+bool config_perm_3 = false; // configs para entrar
+bool profiled = false;      // se tudo tiver de boas, vai ficar true, se não, nao fica
 
 string getDateTime()
 {
@@ -222,11 +98,11 @@ string getDateTime()
 
     return string(buffer);
 }
+
 void PRINT_SYS_BLUE(const string &msgsss)
 {
     cout << icolor::blue() << msgsss << icolor::finished() << endl;
 }
-
 void PRINT_SYS_FATAL(const string &msgsss)
 {
     cout << icolor::fatal() << msgsss << icolor::finished() << endl;
@@ -273,7 +149,146 @@ void PRINT_SYS_SUCESS(const string &msgsss)
     cout << icolor::sucess() << msgsss << icolor::finished() << endl;
 }
 
-void CLEAR_LOGS_ERROR()
+void ImagemParaASCII(const string &caminhoImagem, int larguraASCII = 80)
+{
+    int w, h, c;
+    unsigned char *img = stbi_load(caminhoImagem.c_str(), &w, &h, &c, 4);
+
+    if (!img)
+    {
+        cout << "Erro ao carregar imagem\n";
+        return;
+    }
+
+    float proporcao = (float)h / w;
+    int alturaASCII = (int)(proporcao * larguraASCII * 0.55f);
+
+    const char *escala[] = {"░", "░", "▒", "▓", "█"};
+    const int escalaTam = 5;
+
+    for (int y = 0; y < alturaASCII; y++)
+    {
+        for (int x = 0; x < larguraASCII; x++)
+        {
+            int px = x * w / larguraASCII;
+            int py = y * h / alturaASCII;
+
+            int i = (py * w + px) * 4;
+
+            int r = img[i];
+            int g = img[i + 1];
+            int b = img[i + 2];
+            int a = img[i + 3];
+
+            if (a < 50)
+            {
+                cout << " ";
+                continue;
+            }
+
+            int gray = (r + g + b) / 3;
+
+            int idx = gray * (escalaTam - 1) / 255;
+            const char *pixel = escala[idx];
+
+            cout << "\033[38;2;"
+                 << r << ";" << g << ";" << b << "m"
+                 << pixel
+                 << "\033[0m";
+        }
+        cout << "\n";
+    }
+
+    stbi_image_free(img);
+}
+void ImagemParaASCII_FundoHash(const string &caminhoImagem, int larguraASCII = 80) // DESCARTADO, mas vai ficar pra quando eu for usar ja ta aq
+{
+    int w, h, c;
+    unsigned char *img = stbi_load(caminhoImagem.c_str(), &w, &h, &c, 3);
+
+    if (!img)
+    {
+        PRINT_SYS_FATAL("Erro ao carregar imagem");
+        return;
+    }
+
+    float proporcao = (float)h / w;
+    int alturaASCII = (int)(proporcao * larguraASCII * 0.55f);
+
+    const int LIMIAR = 128;
+
+    for (int y = 0; y < alturaASCII; y++)
+    {
+        for (int x = 0; x < larguraASCII; x++)
+        {
+            int px = x * w / larguraASCII;
+            int py = y * h / alturaASCII;
+
+            int i = (py * w + px) * 3;
+            int gray = (img[i] + img[i + 1] + img[i + 2]) / 3;
+
+            if (gray < LIMIAR)
+                cout << "#";
+            else
+                cout << " ";
+        }
+        cout << "\n";
+    }
+
+    stbi_image_free(img);
+}
+
+void setTitleBasic() // so muda o titulo
+{
+    system(("title Big Dragon OS - " + thisvers).c_str());
+}
+
+void iniciarDiscordRPC()
+{
+    memset(&handlers, 0, sizeof(handlers));
+
+    Discord_Initialize(
+        "1467630970881446050", // aplication id do bagui
+        &handlers,
+        1,
+        NULL);
+
+    memset(&presence, 0, sizeof(presence));
+
+    presence.state = "Inicializando sistema";
+    presence.details = "BigDragonOS";
+    presence.largeImageKey = "bdoslogo";
+    presence.largeImageText = "Big Dragon OS";
+    presence.startTimestamp = time(NULL);
+
+    Discord_UpdatePresence(&presence);
+
+    discord_disponivel = true;
+}
+
+void atualizarDiscordRPC(const char *estado, const char *detalhes)
+{
+    if (!discord_disponivel || discord_rpc_prauso == false)
+        return;
+
+    static string detalhesComVersao;
+    detalhesComVersao = string(detalhes) + " " + thisvers;
+
+    presence.state = estado;
+    presence.details = detalhesComVersao.c_str();
+    Discord_UpdatePresence(&presence);
+}
+
+void finalizarDiscordRPC()
+{
+    if (!discord_disponivel)
+        return;
+
+    Discord_ClearPresence();
+    Discord_Shutdown();
+}
+
+void CLEAR_LOGS_ERROR() // limpa todas as logs de erro
 {
     ofstream logsERR(errors_log_file);
     if (logsERR.is_open())
@@ -286,7 +301,7 @@ void CLEAR_LOGS_ERROR()
     }
 }
 
-void CLEAR_LOGS_HISTORY()
+void CLEAR_LOGS_HISTORY() // blablabla
 {
     ofstream logsHIS(history_log_file);
     if (logsHIS.is_open())
@@ -310,7 +325,7 @@ vector<string> comandos_validos = {
     "check_doc", "configs", "check_storage",
     "system_info", "beep"};
 
-void clear_cmd()
+void clear_cmd() // qualquer coisa se precisasse de algo a mais ja ta aq
 {
     system("cls");
 }
@@ -377,7 +392,7 @@ void tocarSom(const char *relativo)
     }
 }
 
-void asciicall()
+void asciicall() // uau
 {
     cout << icolor::green() << " _____ _        ____                         _____ _____ \n"
          << icolor::finished();
@@ -391,7 +406,7 @@ void asciicall()
          << icolor::finished();
 }
 
-void clear_cmd_ascii()
+void clear_cmd_ascii() // eita
 {
     Sleep(1000);
     system("cls");
@@ -793,7 +808,7 @@ bool senha_loader()
     }
 }
 
-void profile_config()
+void profile_config() // configs do perfil
 {
     atualizarDiscordRPC("Criando perfil", "No terminal do BigDragonOS");
     asciicall();
@@ -892,7 +907,7 @@ void verification_profile()
     }
 }
 
-void verification_curl()
+void verification_curl() // AAAAAAAAAAAAAAAAAAAAAAAAA
 {
     int curldetect = system("curl --version >nul");
     if (curldetect == 0)
@@ -928,7 +943,7 @@ void put_volume_sound()
     }
     else
     {
-        PRINT_SYS_FATAL("Erro ao mudar o volume");
+        PRINT_SYS_FATAL("Erro ao mudar o volume"); // chora?
     }
 }
 
@@ -944,7 +959,7 @@ void set_sound(const string &value)
     }
     else
     {
-        PRINT_SYS_FATAL("Erro ao setar volume");
+        PRINT_SYS_FATAL("Erro ao setar volume"); // atualiza
     }
     ofstream coiso(sound_config);
 
@@ -955,11 +970,11 @@ void set_sound(const string &value)
     }
     else
     {
-        PRINT_SYS_FATAL("Erro ao setar volume");
+        PRINT_SYS_FATAL("Erro ao setar volume"); // se aparecer isso atualiza
     }
 }
 
-void executarComCancelamento(const string &exe, const string &appusando)
+void executarComCancelamento(const string &exe, const string &appusando) // apertar ESC e sai do aplicativo (WOW)
 {
     STARTUPINFOA si = {sizeof(STARTUPINFOA)};
     PROCESS_INFORMATION pi;
@@ -968,7 +983,7 @@ void executarComCancelamento(const string &exe, const string &appusando)
     HANDLE hInput = GetStdHandle(STD_INPUT_HANDLE);
     DWORD modoOriginal;
     GetConsoleMode(hInput, &modoOriginal);
-    atualizarDiscordRPC(("Aplicativo aberto: " + appusando).c_str(), "No terminal do BigDragonOS");
+    atualizarDiscordRPC(("Aplicativo aberto: " + appusando).c_str(), "No terminal do BigDragonOS"); // so um negocio do discord la
 
     if (CreateProcessA(
             NULL,
@@ -1010,7 +1025,7 @@ void executarComCancelamento(const string &exe, const string &appusando)
     }
     else
     {
-        PRINT_SYS_FATAL("Erro ao criar processo");
+        PRINT_SYS_FATAL("Erro ao criar processo"); // chora nao
     }
 }
 
@@ -1022,7 +1037,7 @@ void listarArquivos(const string &pasta)
 
     if (hFind == INVALID_HANDLE_VALUE)
     {
-        PRINT_SYS_FATAL("Pasta corrompida ou inexistente.");
+        PRINT_SYS_FATAL("Pasta corrompida ou inexistente."); // chora
         return;
     }
 
@@ -1116,7 +1131,7 @@ string toLowerCase(const string &str)
     return lower;
 }
 
-void criar_senha(const string &)
+void criar_senha(const string &) // da pra burlar isso tão facil
 {
     string senha;
     cout << "Crie uma senha: ";
@@ -1180,7 +1195,7 @@ void check_outdated_apps()
     }
 }
 
-void ativar_outdated_apps(const string &baguilouco)
+void ativar_outdated_apps(const string &baguilouco) // pra que mn
 {
     ofstream oaf(outdated_apps_file);
     if (oaf.is_open())
@@ -1202,7 +1217,7 @@ void ativar_outdated_apps(const string &baguilouco)
     }
 }
 
-void security_aba(const string &what)
+void security_aba(const string &what) // aba de segurança, contra ngm, ngm vai saber usar esse sistema lixo
 {
     if (what == "senhas")
     {
@@ -1615,14 +1630,14 @@ int main()
                         }
                     }
                 }
-                else if (comando.rfind("exec_apps ", 0) == 0)
+                else if (comando.rfind("exec_apps ", 0) == 0) // eita
                 {
                     string app = comando.substr(10);
                     string caminho = "storage/apps/EXECUTER/" + app + ".exe";
                     executarComCancelamento(caminho, app);
                 }
 
-                else if (comando.rfind("open_apps_lib ", 0) == 0)
+                else if (comando.rfind("open_apps_lib ", 0) == 0) // praq tu vai usar mds
                 {
                     if (outdated_apps == true)
                     {
@@ -1665,9 +1680,13 @@ int main()
                     string appp = comando.substr(8);
                     string caminho = "storage/apps/" + appp + ".cpp";
                     if (remove(caminho.c_str()) == 0)
+                    {
                         cout << "Deletado\n";
+                    }
                     else
+                    {
                         PRINT_SYS_FATAL("Erro ao deletar aplicativos");
+                    }
                 }
                 else if (comando.rfind("del_exec_app ", 0) == 0)
                 {
@@ -1679,10 +1698,10 @@ int main()
                     }
                     else
                     {
-                        PRINT_SYS_FATAL("Erro ao deletar arquivos executores");
+                        PRINT_SYS_FATAL("Erro ao deletar arquivos executores"); // bem não existe, burro
                     }
                 }
-                else if (comando.rfind("say", 0) == 0)
+                else if (comando.rfind("say", 0) == 0) // nao sei pra que tu usaria isso, mas tá
                 {
                     string msg = comando.substr(4);
                     cout << msg << endl;
@@ -1704,7 +1723,7 @@ int main()
                         cout << "Permissoes: " << info.st_mode << "\n";
                     }
                 }
-                else if (comando == "clear" || comando == "cls")
+                else if (comando == "clear" || comando == "cls") // uau
                 {
                     clear_cmd();
                     Sleep(100);
@@ -1722,7 +1741,7 @@ int main()
 
                     if (vv == "Y" || vv == "y")
                     {
-                        atualizarDiscordRPC("Formatando sistema...", "No terminal do BigDragonOS");
+                        atualizarDiscordRPC("Formatando sistema", "No terminal do BigDragonOS");
                         int delaytime = 50;
                         canpop = false;
                         PRINT_SYS_BLUE("Formatando...");
@@ -1799,13 +1818,13 @@ int main()
                 }
                 else if (comando == "check_doc" || comando == "check_docs" || comando == "help" || comando == "ajuda" || comando == "socorro")
                 {
-                    check_doc();
+                    check_doc(); // AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
                 }
-                else if (comando == "check_notifications")
+                else if (comando == "check_notifications") // nao usa mais
                 {
                     check_notifications();
                 }
-                else if (comando == "clear_notifications")
+                else if (comando == "clear_notifications") // nao se usa mais
                 {
                     clear_notifications();
                 }
@@ -1838,7 +1857,7 @@ int main()
                     size_t pos = link.find_last_of('/');
                     if (pos == string::npos)
                     {
-                        PRINT_SYS_FATAL("Link inválido");
+                        PRINT_SYS_FATAL("Link inválido"); // chora
                         continue;
                     }
 
@@ -1853,7 +1872,7 @@ int main()
                     }
                     else
                     {
-                        PRINT_SYS_FATAL("Falha no download");
+                        PRINT_SYS_FATAL("Falha no download"); // chora
                     }
                 }
                 else if (comando == "check_history" || comando == "check_historico")
@@ -1879,7 +1898,7 @@ int main()
                     };
                     MOPTS::ShowMenu("Configurações de seguranca", security_opts, "> ", "");
                 }
-                else if (comando == "system_info" || comando == "sys_info")
+                else if (comando == "system_info" || comando == "sys_info") // UUUAAAAU
                 {
                     cout << "OS: BigDragonOS" << endl;
                     cout << "Storage: " << armazenamento_total_aplicativos_str << endl;
@@ -1888,12 +1907,12 @@ int main()
                     cout << "Actual version: " << actualvers << endl;
                     cout << "This version: " << thisvers << endl;
                 }
-                else if (comando == "beep")
+                else if (comando == "beep") // nao sei, tentei imitar windows
                 {
                     tocarSom("storage\\configs\\sounds\\beep.wav");
                     Sleep(1000);
                 }
-                else if (comando.rfind("sound ", 0) == 0)
+                else if (comando.rfind("sound ", 0) == 0) // som peso
                 {
                     string onouoff = comando.substr(6);
                     if (onouoff == "on" || onouoff == "unmute")
@@ -1909,7 +1928,7 @@ int main()
                         PRINT_SYS_FATAL("Erro, um sinal foi enviado errado");
                     }
                 }
-                else if (comando == "shutdown")
+                else if (comando == "shutdown") // faz nada, so fecha a tela KKKKKKKK
                 {
                     clear_cmd();
                     while (true)
@@ -1917,7 +1936,7 @@ int main()
                         Sleep(1000);
                     }
                 }
-                else if (comando == "configs")
+                else if (comando == "configs") // uau
                 {
                     atualizarDiscordRPC("Vendo configurações do sistema", "No terminal do BigDragonOS");
                     MOPTS::MenuOption configs_opts[] = {
@@ -1970,7 +1989,7 @@ int main()
                         PRINT_SYS_FATAL("Erro na transmissão de logs, o arquivo de logs não existe");
                     }
                 }
-                else if (comando == "custom")
+                else if (comando == "custom") // fiz pq deu tedio msm
                 {
                     string msggg = "";
                     string nothing;
@@ -1978,7 +1997,7 @@ int main()
                     atualizarDiscordRPC(msggg.c_str(), "No terminal do BigDragonOS");
                     getline(cin, nothing);
                 }
-                else if (comando == "tests")
+                else if (comando == "tests") // testes
                 {
                     atualizarDiscordRPC("Testando o sistema", "No terminal do BigDragonOS");
                     MOPTS::MenuOption test_ops[] = {
@@ -1997,9 +2016,9 @@ int main()
 
                     MOPTS::ShowMenu("Testes", test_ops, "> ", "");
                 }
-                else if (comando == "open_photo")
+                else if (comando == "open_photos")
                 {
-                    atualizarDiscordRPC("Vendo fotos...", "No terminal do BigDragonOS");
+                    atualizarDiscordRPC("Vendo fotos", "No terminal do BigDragonOS");
                     string pasta = "storage/photos/";
                     vector<string> fotos;
 
@@ -2020,7 +2039,7 @@ int main()
 
                     if (fotos.empty())
                     {
-                        cout << "Achamos nenhuma foto" << endl;
+                        PRINT_SYS_FATAL("Nenhuma foto foi encontrada");
                         system("pause");
                     }
                     else
@@ -2042,9 +2061,20 @@ int main()
                         MOPTS::ShowMenuDynamic("Fotos", opcoes.data(), opcoes.size(), "> ", "");
                     }
                 }
+                else if (comando.rfind("down_photo ", 0) == 0)
+                {
+                    atualizarDiscordRPC("Baixando foto", "No terminal do BigDragonOS");
+                    string fotolink = comando.substr(11);
+                    string caminhoparafoto = "storage/photos/";
+                    string nomeArquivo = fotolink.substr(fotolink.find_last_of("/") + 1);
+                    string caminhoCompleto = caminhoparafoto + nomeArquivo;
+                    string comandoCurl = "curl -s -L --ssl-no-revoke \"" + fotolink + "\" -o \"" + caminhoCompleto + "\"";
+
+                    system(comandoCurl.c_str());
+                }
                 else if (comando == "del_photo")
                 {
-                    atualizarDiscordRPC("Deletando fotos...", "No terminal do BigDragonOS");
+                    atualizarDiscordRPC("Deletando foto", "No terminal do BigDragonOS");
                     string pasta = "storage/photos/";
                     vector<string> fotos;
 
@@ -2067,7 +2097,7 @@ int main()
 
                     if (fotos.empty())
                     {
-                        cout << "Achamos nenhuma foto" << endl;
+                        PRINT_SYS_FATAL("Nenhuma foto foi encontrada");
                         system("pause");
                     }
                     else
@@ -2079,7 +2109,6 @@ int main()
                             {
                                 PRINT_SYS_FATAL("Erro ao deletar foto");
                             }
-                            system("pause");
                         };
 
                         auto Voltar = [](const string &) {};
@@ -2093,18 +2122,81 @@ int main()
                         MOPTS::ShowMenuDynamic("Foto - deletar", opcoes.data(), opcoes.size(), "> ", "");
                     }
                 }
+                else if (comando == "rename_photo")
+                {
+                    atualizarDiscordRPC("Renomeando foto", "No terminal do BigDragonOS");
+                    string pasta = "storage/photos/";
+                    vector<string> fotos;
 
+                    WIN32_FIND_DATAA findFileData;
+                    HANDLE hFind = FindFirstFileA((pasta + "*").c_str(), &findFileData);
+
+                    if (hFind != INVALID_HANDLE_VALUE)
+                    {
+                        do
+                        {
+                            string nome = findFileData.cFileName;
+                            if (nome != "." && nome != "..")
+                            {
+                                fotos.push_back(nome);
+                            }
+                        } while (FindNextFileA(hFind, &findFileData) != 0);
+
+                        FindClose(hFind);
+                    }
+
+                    if (fotos.empty())
+                    {
+                        PRINT_SYS_FATAL("Nenhuma foto foi encontrada");
+                        system("pause");
+                    }
+                    else
+                    {
+                        auto RenomearFotoEscolhida = [](const string &nomeFoto)
+                        {
+                            PRINT_SYS_BLUE(nomeFoto);
+                            PRINT_SYS_BLUE("Digite o novo nome (com extensão): ");
+
+                            string novoNome;
+                            getline(cin, novoNome);
+
+                            if (novoNome.empty())
+                            {
+                                PRINT_SYS_FATAL("Nome inválido");
+                                return;
+                            }
+
+                            string caminhoAntigo = "storage/photos/" + nomeFoto;
+                            string caminhoNovo = "storage/photos/" + novoNome;
+
+                            if (rename(caminhoAntigo.c_str(), caminhoNovo.c_str()) != 0)
+                            {
+                                PRINT_SYS_FATAL("Erro ao renomear foto");
+                            }
+                        };
+
+                        auto Voltar = [](const string &) {};
+                        vector<MOPTS::MenuOption> opcoes;
+                        for (size_t i = 0; i < fotos.size(); i++)
+                        {
+                            opcoes.push_back({fotos[i], fotos[i], RenomearFotoEscolhida});
+                        }
+
+                        opcoes.push_back({"Voltar", "", Voltar});
+                        MOPTS::ShowMenuDynamic("Foto - renomear", opcoes.data(), opcoes.size(), "> ", "");
+                    }
+                }
                 else
                 {
                     string sugestao = sugerir_comando(comando);
 
                     if (!sugestao.empty())
                     {
-                        PRINT_SYS_FATAL("Comando desconhecido, você quis dizer '" + sugestao + "'?");
+                        PRINT_SYS_FATAL("Comando desconhecido, você quis dizer '" + sugestao + "'?"); // tentando desviar sua burrice
                     }
                     else
                     {
-                        PRINT_SYS_FATAL("Comando desconhecido");
+                        PRINT_SYS_FATAL("Comando desconhecido"); // brr
                     }
                     modengc = "error";
                 }
@@ -2112,12 +2204,12 @@ int main()
                 {
                     if (canpop == true)
                     {
-                        tocarSom("storage\\configs\\sounds\\pop.wav");
+                        tocarSom("storage\\configs\\sounds\\pop.wav"); // som de sucesso
                     }
                 }
                 else
                 {
-                    tocarSom("storage\\configs\\sounds\\error.wav");
+                    tocarSom("storage\\configs\\sounds\\error.wav"); // som de erro, apareceu = foi triste
                 }
                 canpop = true;
                 if (logs == true)
@@ -2125,20 +2217,20 @@ int main()
                     ofstream logsHIS(history_log_file, ios::app);
                     if (logsHIS.is_open())
                     {
-                        logsHIS << "[HISTORY] [" << getDateTime() << "] " << comando << "\n";
+                        logsHIS << "[HISTORY] [" << getDateTime() << "] " << comando << "\n"; // salva no historico isso
                     }
                     else
                     {
-                        PRINT_SYS_FATAL("Erro ao abrir arquivo de logs de histórico");
+                        PRINT_SYS_FATAL("Erro ao abrir arquivo de logs de histórico"); // se aparecer isso foi triste
                     }
                 }
                 if (clearcmd == true)
                 {
-                    clear_cmd_ascii();
+                    clear_cmd_ascii(); // UAU
                 }
             }
         }
     }
     system("pause >nul");
     return 0;
-}
+} // cabou

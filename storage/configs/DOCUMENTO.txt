@@ -28,3 +28,7 @@ clear_logs_error -> Limpa as logs de erro
 clear_logs_history -> Limpa as logs de histórico
 show_logs_error -> Mostra as logs de erro
 show_logs_history -> Mostra as logs de histórico
+down_photo [LINK_DA_FOTO] -> Baixa uma foto na pasta photos
+open_photos -> Mostra todas as fotos para você escolher qual quer ver
+del_photo -> Mostra todas as fotos para você escolher qual você quer deletar
+rename_photo -> Mostra todas as fotos para você escolher qual você quer renomear

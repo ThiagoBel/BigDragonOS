@@ -14,6 +14,9 @@
 ### Verificar versão
 - Para verificar a sua versão do sistema, use o comando 'version'.
 - Use o comando 'check_version' para verificar se sua versão é a versão mais atualizada do BigDragonOS
+### Fotos
+- Nova funcionalidade que chegou na 1.7, fotos coloridas
+- Comandos: "down_photo (LINK)" , "open_photos" , "del_photo" , "rename_photo"
 ### Armazenamento
 - Use o comando 'check_storage' para ver quantos MB o sistema utilizou
 ### Logs
