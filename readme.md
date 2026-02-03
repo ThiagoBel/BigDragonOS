@@ -1,4 +1,4 @@
-# BigDragonOS
+# BigDragonOS 1.7
 - Simulador de sistema operacional simples usando C++ (apenas Windows7+)
 
 > Isso não é uma maquina virtual, é apenas um simulador, você ainda sim pode pegar vírus no seu computador usando esses comandos: **exec_apps**, **down_apps**, **open_apps**, **open_apps_libs**, etc
@@ -47,4 +47,5 @@
 #### IMG1
 - Imagem 1
 #### IMG2
+
 - Imagem 2 (melhor)
