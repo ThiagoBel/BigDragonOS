@@ -10,6 +10,9 @@
 
 > Isso não é uma maquina virtual, é apenas um simulador, você ainda sim pode pegar vírus no seu computador usando esses comandos: **exec_apps**, **down_apps**, **open_apps**, **open_apps_libs**, etc
 
+# Download
+[Clique aqui para ir para o releases](https://github.com/ThiagoBel/BigDragonOS/releases)
+
 # Como iniciar?
 - Entre na pasta, vá até o aplicativo **bdOS.exe** e execute ele
 
@@ -56,4 +59,3 @@
 #### IMG2
 
 - Imagem 2 (melhor)
-
