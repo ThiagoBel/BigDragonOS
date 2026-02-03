@@ -1,3 +1,10 @@
+![GitHub all releases](https://img.shields.io/github/downloads/ThiagoBel/BigDragonOS/total)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/ThiagoBel/BigDragonOS)
+![GitHub closed pull requests](https://img.shields.io/github/issues-pr-closed/ThiagoBel/BigDragonOS)
+![GitHub last commit](https://img.shields.io/github/last-commit/ThiagoBel/BigDragonOS)
+![GitHub commit activity](https://img.shields.io/github/commit-activity/m/ThiagoBel/BigDragonOS)
+![GitHub contributors](https://img.shields.io/github/contributors/ThiagoBel/BigDragonOS)
+![GitHub repo size](https://img.shields.io/github/repo-size/ThiagoBel/BigDragonOS)
 # BigDragonOS 1.7
 - Simulador de sistema operacional simples usando C++ (apenas Windows7+)
 
@@ -49,3 +56,4 @@
 #### IMG2
 
 - Imagem 2 (melhor)
+
