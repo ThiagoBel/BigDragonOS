@@ -33,7 +33,7 @@
 - 'Logs' são as coisas que acontecem no sistema (Todos os erros, historico de comandos, etc), usando o comando 'Configs' você pode ativar ou desativar as logs.
 #### Clear cmd
 - 'Clear cmd' é a opção de limpar o cmd depois de usar qualquer comando (use o comando 'Configs' para ativar ou desativar).
-### Discord Rich Presence (discord-rpc)
+#### Discord Rich Presence (discord-rpc)
 - Integração com Discord Rich Presence para exibição de status do bdOS.
 
 ## Security
@@ -41,7 +41,10 @@
 - 'Outdated_apps' são comandos antigos que não são mais usados por segurança, para desativar o Outdated_apps, basta usar o comando 'Security', navegar até 'Outdated_apps', selecionar e escolher a opção de desativar, **NÃO RECOMENDO** fazer isso, pois essa função foi feita justamente para segurança.
 #### Senhas
 - Use o comando: 'Security', depois navegue até 'senhas', depois aperte em criar senha e crie sua senha (É muito fácil burlar o sistema de senha, cuidado).
-
+#### AutoRun
+- 'AutoRun' é uma nova funcionalidade que veio na versão 1.8, que serve basicamente para quando o usuário abrir o BigDragonOS, irá executar no terminal um determinado comando.
+- Você pode editar o AutoRun usando 'edit_autorun'.
+- Você pode desativar/ativar o AutoRun usando o comando 'Security'
 ## Tests
 - O comando 'tests' serve para testar alguma coisa que possivelmente vai ser uma novidade no BigDragonOS
 #### IMG1
