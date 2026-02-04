@@ -48,6 +48,8 @@ string clearcmdfile = "storage/configs/clear_cmd.txt";
 string mutexfile = "storage/configs/mutex.txt";
 string sound_config = "storage/configs/sound.txt";
 string senhakey = "storage/configs/key.txt";
+string autorunfile = "storage/configs/autorun.txt";
+string autorunfileperm = "storage/configs/can_exec_autorun.txt";
 string errors_log_file = "storage/configs/logs/errors.log";
 string history_log_file = "storage/configs/logs/history.log";
 string logsenabler = "storage/configs/logs.txt";
@@ -59,6 +61,11 @@ string genderuser = "";
 string SENHAFINAL = "";
 string modengc = "sucess";
 
+vector<string> autorun_cmds;
+bool autorun_executado = false;
+bool can_autorun = true;
+bool perm_to_autorun = true;
+string whatrun_autorun = "";
 bool discord_rpc_prauso = true;
 bool discord_disponivel = false;
 bool clearcmd = false;
@@ -70,7 +77,7 @@ bool sound_value = true;
 bool entrada_pela_senha = false;
 unsigned long long armazenamento_total_aplicativos_num = 0;
 string armazenamento_total_aplicativos_str = "0 bytes";
-string thisvers = "1.7"; // versaozinha
+string thisvers = "1.8"; // versaozinha
 string actualvers = "nl";
 string os = "";
 bool canstart = false;
@@ -153,7 +160,6 @@ void ImagemParaASCII(const string &caminhoImagem, int larguraASCII = 80)
 {
     int w, h, c;
     unsigned char *img = stbi_load(caminhoImagem.c_str(), &w, &h, &c, 4);
-
     if (!img)
     {
         cout << "Erro ao carregar imagem\n";
@@ -163,16 +169,32 @@ void ImagemParaASCII(const string &caminhoImagem, int larguraASCII = 80)
     float proporcao = (float)h / w;
     int alturaASCII = (int)(proporcao * larguraASCII * 0.55f);
 
-    const char *escala[] = {"░", "░", "▒", "▓", "█"};
-    const int escalaTam = 5;
+    static const char *escala[] = {"░", "░", "▒", "▓", "█"};
+    constexpr int escalaTam = 5;
+
+    vector<int> mapX(larguraASCII);
+    vector<int> mapY(alturaASCII);
+
+    for (int x = 0; x < larguraASCII; x++)
+    {
+        mapX[x] = x * w / larguraASCII;
+    }
+    for (int y = 0; y < alturaASCII; y++)
+    {
+        mapY[y] = y * h / alturaASCII;
+    }
+    string buffer;
+    buffer.reserve(larguraASCII * alturaASCII * 32); // pega tudo e lança tudo no mesmo tempo
+
+    int lastR = -1, lastG = -1, lastB = -1;
 
     for (int y = 0; y < alturaASCII; y++)
     {
+        int py = mapY[y];
+
         for (int x = 0; x < larguraASCII; x++)
         {
-            int px = x * w / larguraASCII;
-            int py = y * h / alturaASCII;
-
+            int px = mapX[x];
             int i = (py * w + px) * 4;
 
             int r = img[i];
@@ -182,25 +204,39 @@ void ImagemParaASCII(const string &caminhoImagem, int larguraASCII = 80)
 
             if (a < 50)
             {
-                cout << " ";
+                buffer += ' ';
                 continue;
             }
 
+            if (r != lastR || g != lastG || b != lastB)
+            {
+                buffer += "\033[38;2;";
+                buffer += to_string(r);
+                buffer += ';';
+                buffer += to_string(g);
+                buffer += ';';
+                buffer += to_string(b);
+                buffer += 'm';
+
+                lastR = r;
+                lastG = g;
+                lastB = b;
+            }
+
             int gray = (r + g + b) / 3;
+            int idx = (gray * (escalaTam - 1)) >> 8;
 
-            int idx = gray * (escalaTam - 1) / 255;
-            const char *pixel = escala[idx];
-
-            cout << "\033[38;2;"
-                 << r << ";" << g << ";" << b << "m"
-                 << pixel
-                 << "\033[0m";
+            buffer += escala[idx];
         }
-        cout << "\n";
+
+        buffer += "\033[0m\n";
+        lastR = lastG = lastB = -1;
     }
 
+    cout << buffer;
     stbi_image_free(img);
 }
+
 void ImagemParaASCII_FundoHash(const string &caminhoImagem, int larguraASCII = 80) // DESCARTADO, mas vai ficar pra quando eu for usar ja ta aq
 {
     int w, h, c;
@@ -1217,6 +1253,67 @@ void ativar_outdated_apps(const string &baguilouco) // pra que mn
     }
 }
 
+void check_autorun()
+{
+    ifstream oaf(autorunfileperm);
+    string linha;
+    if (oaf.is_open())
+    {
+        while (getline(oaf, linha))
+        {
+            if (linha == "true")
+            {
+                perm_to_autorun = true;
+            }
+            if (linha == "false")
+            {
+                perm_to_autorun = false;
+            }
+            break;
+        }
+        oaf.close();
+    }
+    else
+    {
+        PRINT_SYS_FATAL("Erro verificar AutoRun");
+    }
+}
+
+void edit_autorun(const string& oq)
+{
+    ofstream asihbdnasuid(autorunfile);
+    if (asihbdnasuid.is_open())
+    {
+        asihbdnasuid << oq;
+    }
+    else
+    {
+        PRINT_SYS_FATAL("Erro ao salvar o AutoRun, tente denovo.");
+    }
+}
+
+void ativar_autorun(const string &baguilouco) // autorun tlgd
+{
+    ofstream oaf(autorunfileperm);
+    if (oaf.is_open())
+    {
+        oaf << baguilouco;
+        if (baguilouco == "true")
+        {
+            perm_to_autorun = true;
+        }
+        if (baguilouco == "false")
+        {
+            perm_to_autorun = false;
+        }
+        oaf.close();
+    }
+    else
+    {
+        PRINT_SYS_FATAL("Erro ao ativar AutoRun");
+    }
+}
+
 void security_aba(const string &what) // aba de segurança, contra ngm, ngm vai saber usar esse sistema lixo
 {
     if (what == "senhas")
@@ -1233,6 +1330,15 @@ void security_aba(const string &what) // aba de segurança, contra ngm, ngm vai 
         MOPTS::MenuOption outdatedA[] = {
             {"Ativar outdated apps", "true", ativar_outdated_apps},
             {"Desativar outdated apps", "false", ativar_outdated_apps},
+        };
+
+        MOPTS::ShowMenu("Escolha uma opção:", outdatedA, "> ", "");
+    }
+    else if (what == "autorun")
+    {
+        MOPTS::MenuOption outdatedA[] = {
+            {"Ativar AutoRun", "true", ativar_autorun},
+            {"Desativar AutoRun", "false", ativar_autorun},
         };
 
         MOPTS::ShowMenu("Escolha uma opção:", outdatedA, "> ", "");
@@ -1506,8 +1612,37 @@ void configs_aba(const string &what)
     }
 }
 
+void exec_autorun()
+{
+    if (perm_to_autorun == true)
+    {
+        if (autorun_executado)
+        {
+            return;
+        }
+
+        ifstream file(autorunfile);
+        string linha;
+
+        if (file.is_open())
+        {
+            while (getline(file, linha))
+            {
+                if (!linha.empty())
+                {
+                    autorun_cmds.push_back(linha);
+                }
+            }
+            file.close();
+        }
+
+        autorun_executado = true;
+    }
+}
+
 int main()
 {
+    check_autorun();
     SetConsoleOutputCP(CP_UTF8);
     check_discord_rpc_activation();
 
@@ -1515,7 +1650,6 @@ int main()
     {
         iniciarDiscordRPC();
     }
-
     check_mutex();
     if (mutex_avaliable == true)
     {
@@ -1528,6 +1662,7 @@ int main()
     {
         return 0;
     }
+    exec_autorun();
     while (true)
     {
         verification_os();
@@ -1573,7 +1708,18 @@ int main()
                 modengc = "sucess";
                 verificar_armazenamento();
                 cout << icolor::white() << "\n[" << icolor::finished() << icolor::gray_10() << "bdOS@" << usernameprofile << icolor::finished() << icolor::white() << "] " << icolor::finished() << "->> ";
-                getline(cin, comandoa);
+                string comandoa;
+
+                if (!autorun_cmds.empty())
+                {
+                    comandoa = autorun_cmds.front();
+                    autorun_cmds.erase(autorun_cmds.begin());
+                }
+                else
+                {
+                    getline(cin, comandoa);
+                }
+
                 string comando = toLowerCase(comandoa);
 
                 if (comando == "exit" || comando == "close")
@@ -1755,6 +1901,10 @@ int main()
                         clear_historico_apps();
                         PRINT_SYS_BLUE("Limpando históricos...");
                         Sleep(delaytime);
+                        ativar_autorun("true");
+                        edit_autorun("");
+                        PRINT_SYS_BLUE("Limpando AutoRun...");
+                        Sleep(delaytime);
                         CLEAR_LOGS_ERROR();
                         CLEAR_LOGS_HISTORY();
                         PRINT_SYS_BLUE("Limpando logs...");
@@ -1894,6 +2044,7 @@ int main()
                     MOPTS::MenuOption security_opts[] = {
                         {"Senhas", "senhas", security_aba},
                         {"Outdated apps", "outdated_apps", security_aba},
+                        {"AutoRun", "autorun", security_aba},
                         {"Voltar", "voltar", security_aba},
                     };
                     MOPTS::ShowMenu("Configurações de seguranca", security_opts, "> ", "");
@@ -2185,6 +2336,11 @@ int main()
                         opcoes.push_back({"Voltar", "", Voltar});
                         MOPTS::ShowMenuDynamic("Foto - renomear", opcoes.data(), opcoes.size(), "> ", "");
                     }
+                }
+                else if (comando.rfind("edit_autorun ", 0) == 0)
+                {
+                    string editamento = comando.substr(13);
+                    edit_autorun(editamento);
                 }
                 else
                 {

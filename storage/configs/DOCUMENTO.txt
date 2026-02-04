@@ -32,3 +32,4 @@ down_photo [LINK_DA_FOTO] -> Baixa uma foto na pasta photos
 open_photos -> Mostra todas as fotos para você escolher qual quer ver
 del_photo -> Mostra todas as fotos para você escolher qual você quer deletar
 rename_photo -> Mostra todas as fotos para você escolher qual você quer renomear
+edit_autorun -> Edita o AutoRun (executa algo no terminal quando você iniciar o terminal, você pode desativar essa função usando 'security')
