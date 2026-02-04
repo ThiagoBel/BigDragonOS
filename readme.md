@@ -1,7 +1,14 @@
+![License](https://img.shields.io/github/license/ThiagoBel/BigDragonOS)
+![Status](https://img.shields.io/badge/status-experimental-orange)
+![Release](https://img.shields.io/github/v/release/ThiagoBel/BigDragonOS)
+![Downloads](https://img.shields.io/github/downloads/ThiagoBel/BigDragonOS/total)
+
 # BigDragonOS
 - Simulador de sistema operacional simples usando C++ (apenas Windows7+)
 
 > Isso não é uma maquina virtual, é apenas um simulador, você ainda sim pode pegar vírus no seu computador usando esses comandos: **exec_apps**, **down_apps**, **open_apps**, **open_apps_libs**, etc
+
+[Releases](https://github.com/ThiagoBel/BigDragonOS/releases)
 
 # Como iniciar?
 - Entre na pasta, vá até o aplicativo **bdOS.exe** e execute ele
